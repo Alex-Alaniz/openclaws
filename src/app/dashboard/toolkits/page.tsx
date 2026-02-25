@@ -158,7 +158,8 @@ function pickCornerColors(stops: readonly string[]): [string, string, string, st
   if (stops.length === 1) return [stops[0], stops[0], stops[0], stops[0]];
   if (stops.length === 2) return [stops[0], stops[1], stops[0], stops[1]];
   if (stops.length === 3) return [stops[0], stops[1], stops[2], stops[1]];
-  return [stops[0], stops[1], stops[2], stops[3]];
+  // Map palette clockwise (TL -> TR -> BR -> BL) into [TL, TR, BL, BR].
+  return [stops[0], stops[1], stops[3], stops[2]];
 }
 
 function resolveBrandStops(record: ToolkitApiRecord) {
@@ -189,11 +190,12 @@ function buildEdgeGradient(stops: readonly string[]) {
 
 function buildAuraGradient(corners: [string, string, string, string]) {
   return [
-    `radial-gradient(88% 88% at 0% 0%, ${withAlpha(corners[0], 0.13)} 0%, ${withAlpha(corners[0], 0.045)} 34%, ${withAlpha(corners[0], 0)} 70%)`,
-    `radial-gradient(88% 88% at 100% 0%, ${withAlpha(corners[1], 0.13)} 0%, ${withAlpha(corners[1], 0.045)} 34%, ${withAlpha(corners[1], 0)} 70%)`,
-    `radial-gradient(88% 88% at 0% 100%, ${withAlpha(corners[2], 0.13)} 0%, ${withAlpha(corners[2], 0.045)} 34%, ${withAlpha(corners[2], 0)} 70%)`,
-    `radial-gradient(88% 88% at 100% 100%, ${withAlpha(corners[3], 0.13)} 0%, ${withAlpha(corners[3], 0.045)} 34%, ${withAlpha(corners[3], 0)} 70%)`,
-    'radial-gradient(72% 72% at 50% 50%, rgba(255,255,255,0.006) 0%, rgba(255,255,255,0) 66%)',
+    `conic-gradient(from -90deg at 50% 50%, ${withAlpha(corners[0], 0.16)} 0deg, ${withAlpha(corners[1], 0.16)} 90deg, ${withAlpha(corners[3], 0.16)} 180deg, ${withAlpha(corners[2], 0.16)} 270deg, ${withAlpha(corners[0], 0.16)} 360deg)`,
+    `radial-gradient(94% 94% at 0% 0%, ${withAlpha(corners[0], 0.2)} 0%, ${withAlpha(corners[0], 0.08)} 36%, ${withAlpha(corners[0], 0)} 72%)`,
+    `radial-gradient(94% 94% at 100% 0%, ${withAlpha(corners[1], 0.2)} 0%, ${withAlpha(corners[1], 0.08)} 36%, ${withAlpha(corners[1], 0)} 72%)`,
+    `radial-gradient(94% 94% at 0% 100%, ${withAlpha(corners[2], 0.2)} 0%, ${withAlpha(corners[2], 0.08)} 36%, ${withAlpha(corners[2], 0)} 72%)`,
+    `radial-gradient(94% 94% at 100% 100%, ${withAlpha(corners[3], 0.2)} 0%, ${withAlpha(corners[3], 0.08)} 36%, ${withAlpha(corners[3], 0)} 72%)`,
+    'radial-gradient(56% 56% at 50% 50%, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 72%)',
   ].join(', ');
 }
 
@@ -270,24 +272,24 @@ function applyCardLighting(card: HTMLElement, clientX: number, clientY: number) 
   const centerDistance = Math.hypot(x - 0.5, y - 0.5) / 0.70710678118;
   const centerProximity = clamp(1 - centerDistance * 1.08);
 
-  const hotCornerAlpha = clamp(0.24 + cornerProximity * 0.84 + edgeProximity * 0.08, 0, 1);
+  const hotCornerAlpha = clamp(0.36 + cornerProximity * 0.9 + edgeProximity * 0.1, 0, 1);
   const idleCornerAlpha = clamp(cornerProximity * 0.008, 0, 0.012);
   const cornerAlphas = [idleCornerAlpha, idleCornerAlpha, idleCornerAlpha, idleCornerAlpha];
   cornerAlphas[activeCorner] = hotCornerAlpha;
 
-  const dimEdgeAlpha = clamp(0.004 + edgeProximity * 0.022, 0, 0.03);
-  const hotEdgeAlpha = clamp(0.22 + cornerProximity * 0.78 + edgeProximity * 0.12, 0, 1);
+  const dimEdgeAlpha = clamp(0.01 + edgeProximity * 0.05, 0, 0.08);
+  const hotEdgeAlpha = clamp(0.42 + cornerProximity * 0.82 + edgeProximity * 0.16, 0, 1);
   const edgeAlphas = [dimEdgeAlpha * 0.22, dimEdgeAlpha * 0.22, dimEdgeAlpha * 0.22, dimEdgeAlpha * 0.22];
   const [edgeA, edgeB] = CORNER_TO_EDGE_INDEXES[activeCorner];
   edgeAlphas[edgeA] = hotEdgeAlpha;
   edgeAlphas[edgeB] = hotEdgeAlpha;
 
-  const auraAlpha = clamp(0.006 + cornerProximity * 0.16 + edgeProximity * 0.04 - centerProximity * 0.05, 0, 0.19);
-  const edgeBright = clamp(0.16 + hotEdgeAlpha * 0.74, 0, 1);
-  const edgeBloom = 0.8 + cornerProximity * 2.1;
-  const edgeBeamAlpha = clamp(0.12 + hotEdgeAlpha * 0.84, 0, 1);
-  const cornerBloom = 2.2 + cornerProximity * 4.2;
-  const cornerBlur = 0.02 + cornerProximity * 0.06;
+  const auraAlpha = clamp(0.02 + cornerProximity * 0.25 + edgeProximity * 0.1 - centerProximity * 0.04, 0, 0.34);
+  const edgeBright = clamp(0.52 + hotEdgeAlpha * 1.04, 0, 1.55);
+  const edgeBloom = 1.6 + cornerProximity * 3.3;
+  const edgeBeamAlpha = clamp(0.34 + hotEdgeAlpha * 0.9, 0, 1);
+  const cornerBloom = 3 + cornerProximity * 5.8;
+  const cornerBlur = 0.01 + cornerProximity * 0.04;
 
   card.style.setProperty('--pointer-x', (x - 0.5).toFixed(3));
   card.style.setProperty('--pointer-y', (y - 0.5).toFixed(3));
@@ -620,8 +622,8 @@ export default function ToolkitsPage() {
                         className="pointer-events-none absolute inset-[1px] z-[1] rounded-[11px] transition-[opacity,filter] duration-300 ease-out"
                         style={{
                           background: toolkit.auraGradient,
-                          opacity: 'calc(0.004 + var(--aura-alpha, 0) * 0.16)',
-                          filter: 'saturate(1.05) brightness(0.98)',
+                          opacity: 'calc(0.01 + var(--aura-alpha, 0) * 0.42)',
+                          filter: 'saturate(1.24) brightness(1.06)',
                           mixBlendMode: 'screen',
                         }}
                       />
@@ -629,10 +631,10 @@ export default function ToolkitsPage() {
                       <div
                         className="pointer-events-none absolute inset-0 z-[1] grid place-items-center will-change-transform"
                         style={{
-                          filter: "url('#toolkit-blur') saturate(3.1) brightness(1.07)",
+                          filter: "url('#toolkit-blur') saturate(3.7) brightness(1.18)",
                           translate: 'calc(var(--pointer-x, 0) * 26cqi) calc(var(--pointer-y, 0) * 26cqh)',
                           scale: '2.35',
-                          opacity: 'calc(0.006 + var(--aura-alpha, 0) * 0.08)',
+                          opacity: 'calc(0.012 + var(--aura-alpha, 0) * 0.15)',
                           transition: 'opacity 300ms ease-out, translate 160ms ease-out',
                         }}
                       >
@@ -670,40 +672,44 @@ export default function ToolkitsPage() {
                       <div
                         className="absolute left-[1px] right-[1px] top-[1px] h-px"
                         style={{
-                          opacity: 'calc(var(--edge-top-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
-                          backgroundImage: `linear-gradient(90deg, ${withAlpha(topLeftColor, 0.34)} 0%, ${withAlpha(topRightColor, 0.34)} 100%), radial-gradient(42% 360% at calc(var(--beam-x, 50) * 1%) 50%, ${withAlpha(topLeftColor, 0.95)} 0%, ${withAlpha(topRightColor, 0.95)} 32%, ${withAlpha(topRightColor, 0)} 72%)`,
+                          opacity: 'calc(var(--edge-top-alpha, 0) * (0.88 + var(--edge-beam-alpha, 0) * 0.68))',
+                          backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.98) 52%, rgba(255,255,255,0.72) 100%), linear-gradient(90deg, ${withAlpha(topLeftColor, 0.86)} 0%, ${withAlpha(topRightColor, 0.86)} 100%), radial-gradient(42% 360% at calc(var(--beam-x, 50) * 1%) 50%, ${withAlpha(topLeftColor, 1)} 0%, ${withAlpha(topRightColor, 1)} 34%, ${withAlpha(topRightColor, 0)} 74%)`,
                           backgroundRepeat: 'no-repeat',
-                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          mixBlendMode: 'screen',
+                          filter: 'contrast(calc(1.02 + var(--edge-bright, 0) * 0.22)) saturate(calc(1.5 + var(--edge-bright, 0) * 1.35)) brightness(calc(1.12 + var(--edge-bright, 0) * 0.95)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.96) rgba(255,255,255,0.22))',
                           transition: 'opacity 140ms ease-out, filter 180ms ease-out',
                         }}
                       />
                       <div
                         className="absolute bottom-[1px] left-[1px] right-[1px] h-px"
                         style={{
-                          opacity: 'calc(var(--edge-bottom-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
-                          backgroundImage: `linear-gradient(90deg, ${withAlpha(bottomLeftColor, 0.34)} 0%, ${withAlpha(bottomRightColor, 0.34)} 100%), radial-gradient(42% 360% at calc(var(--beam-x, 50) * 1%) 50%, ${withAlpha(bottomLeftColor, 0.95)} 0%, ${withAlpha(bottomRightColor, 0.95)} 32%, ${withAlpha(bottomRightColor, 0)} 72%)`,
+                          opacity: 'calc(var(--edge-bottom-alpha, 0) * (0.88 + var(--edge-beam-alpha, 0) * 0.68))',
+                          backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.98) 52%, rgba(255,255,255,0.72) 100%), linear-gradient(90deg, ${withAlpha(bottomLeftColor, 0.86)} 0%, ${withAlpha(bottomRightColor, 0.86)} 100%), radial-gradient(42% 360% at calc(var(--beam-x, 50) * 1%) 50%, ${withAlpha(bottomLeftColor, 1)} 0%, ${withAlpha(bottomRightColor, 1)} 34%, ${withAlpha(bottomRightColor, 0)} 74%)`,
                           backgroundRepeat: 'no-repeat',
-                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          mixBlendMode: 'screen',
+                          filter: 'contrast(calc(1.02 + var(--edge-bright, 0) * 0.22)) saturate(calc(1.5 + var(--edge-bright, 0) * 1.35)) brightness(calc(1.12 + var(--edge-bright, 0) * 0.95)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.96) rgba(255,255,255,0.22))',
                           transition: 'opacity 140ms ease-out, filter 180ms ease-out',
                         }}
                       />
                       <div
                         className="absolute bottom-[1px] left-[1px] top-[1px] w-px"
                         style={{
-                          opacity: 'calc(var(--edge-left-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
-                          backgroundImage: `linear-gradient(180deg, ${withAlpha(topLeftColor, 0.34)} 0%, ${withAlpha(bottomLeftColor, 0.34)} 100%), radial-gradient(360% 42% at 50% calc(var(--beam-y, 50) * 1%), ${withAlpha(topLeftColor, 0.95)} 0%, ${withAlpha(bottomLeftColor, 0.95)} 32%, ${withAlpha(bottomLeftColor, 0)} 72%)`,
+                          opacity: 'calc(var(--edge-left-alpha, 0) * (0.88 + var(--edge-beam-alpha, 0) * 0.68))',
+                          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.98) 52%, rgba(255,255,255,0.72) 100%), linear-gradient(180deg, ${withAlpha(topLeftColor, 0.86)} 0%, ${withAlpha(bottomLeftColor, 0.86)} 100%), radial-gradient(360% 42% at 50% calc(var(--beam-y, 50) * 1%), ${withAlpha(topLeftColor, 1)} 0%, ${withAlpha(bottomLeftColor, 1)} 34%, ${withAlpha(bottomLeftColor, 0)} 74%)`,
                           backgroundRepeat: 'no-repeat',
-                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          mixBlendMode: 'screen',
+                          filter: 'contrast(calc(1.02 + var(--edge-bright, 0) * 0.22)) saturate(calc(1.5 + var(--edge-bright, 0) * 1.35)) brightness(calc(1.12 + var(--edge-bright, 0) * 0.95)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.96) rgba(255,255,255,0.22))',
                           transition: 'opacity 140ms ease-out, filter 180ms ease-out',
                         }}
                       />
                       <div
                         className="absolute bottom-[1px] right-[1px] top-[1px] w-px"
                         style={{
-                          opacity: 'calc(var(--edge-right-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
-                          backgroundImage: `linear-gradient(180deg, ${withAlpha(topRightColor, 0.34)} 0%, ${withAlpha(bottomRightColor, 0.34)} 100%), radial-gradient(360% 42% at 50% calc(var(--beam-y, 50) * 1%), ${withAlpha(topRightColor, 0.95)} 0%, ${withAlpha(bottomRightColor, 0.95)} 32%, ${withAlpha(bottomRightColor, 0)} 72%)`,
+                          opacity: 'calc(var(--edge-right-alpha, 0) * (0.88 + var(--edge-beam-alpha, 0) * 0.68))',
+                          backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.98) 52%, rgba(255,255,255,0.72) 100%), linear-gradient(180deg, ${withAlpha(topRightColor, 0.86)} 0%, ${withAlpha(bottomRightColor, 0.86)} 100%), radial-gradient(360% 42% at 50% calc(var(--beam-y, 50) * 1%), ${withAlpha(topRightColor, 1)} 0%, ${withAlpha(bottomRightColor, 1)} 34%, ${withAlpha(bottomRightColor, 0)} 74%)`,
                           backgroundRepeat: 'no-repeat',
-                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          mixBlendMode: 'screen',
+                          filter: 'contrast(calc(1.02 + var(--edge-bright, 0) * 0.22)) saturate(calc(1.5 + var(--edge-bright, 0) * 1.35)) brightness(calc(1.12 + var(--edge-bright, 0) * 0.95)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.96) rgba(255,255,255,0.22))',
                           transition: 'opacity 140ms ease-out, filter 180ms ease-out',
                         }}
                       />
@@ -718,7 +724,7 @@ export default function ToolkitsPage() {
                           backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'top left, top left',
                           opacity: 'var(--corner-tl-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topLeftColor, 0.78)})`,
+                          filter: `blur(var(--corner-blur, 0px)) brightness(1.28) drop-shadow(0 0 calc(var(--corner-bloom, 0px) * 0.62) ${withAlpha(topLeftColor, 0.94)}) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topLeftColor, 0.66)})`,
                           transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
@@ -730,7 +736,7 @@ export default function ToolkitsPage() {
                           backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'top right, top right',
                           opacity: 'var(--corner-tr-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topRightColor, 0.78)})`,
+                          filter: `blur(var(--corner-blur, 0px)) brightness(1.28) drop-shadow(0 0 calc(var(--corner-bloom, 0px) * 0.62) ${withAlpha(topRightColor, 0.94)}) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topRightColor, 0.66)})`,
                           transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
@@ -742,7 +748,7 @@ export default function ToolkitsPage() {
                           backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'bottom left, bottom left',
                           opacity: 'var(--corner-bl-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomLeftColor, 0.78)})`,
+                          filter: `blur(var(--corner-blur, 0px)) brightness(1.28) drop-shadow(0 0 calc(var(--corner-bloom, 0px) * 0.62) ${withAlpha(bottomLeftColor, 0.94)}) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomLeftColor, 0.66)})`,
                           transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
@@ -754,7 +760,7 @@ export default function ToolkitsPage() {
                           backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'bottom right, bottom right',
                           opacity: 'var(--corner-br-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomRightColor, 0.78)})`,
+                          filter: `blur(var(--corner-blur, 0px)) brightness(1.28) drop-shadow(0 0 calc(var(--corner-bloom, 0px) * 0.62) ${withAlpha(bottomRightColor, 0.94)}) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomRightColor, 0.66)})`,
                           transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
