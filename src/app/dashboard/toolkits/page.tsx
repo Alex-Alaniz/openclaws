@@ -208,32 +208,27 @@ export default function ToolkitsPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-[#0a0a0a] text-white">
-      <style jsx global>{`
-        .toolkit-card .border-glow {
-          animation: none;
-        }
-      `}</style>
       <svg className="hidden" aria-hidden="true">
         <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="20" /></filter></defs>
       </svg>
       <div className="mx-auto w-full max-w-5xl space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold md:text-2xl">Toolkits</h1>
+          <h1 className="text-xl font-bold text-zinc-100 md:text-2xl">Toolkits</h1>
           {isRefreshing && !isLoading ? <span className="text-[11px] text-zinc-500">Refreshing...</span> : null}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div role="tablist" className="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-[#1f1f1f] p-[3px]">
+          <div role="tablist" className="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-[#1f1f1f] p-[3px] text-zinc-400">
             {(['All', 'Connected'] as const).map((item) => (
               <button
                 key={item}
                 onClick={() => setTab(item)}
                 role="tab"
                 aria-selected={tab === item}
-                className={`h-full rounded-md px-3 text-xs font-medium transition-colors ${
+                className={`h-[calc(100%-1px)] rounded-md border border-transparent px-3 py-1 text-sm font-medium transition-colors ${
                   tab === item
-                    ? 'bg-[#111111] text-white'
-                    : 'text-zinc-400 hover:bg-white/10 hover:text-white'
+                    ? 'bg-[#111111] text-zinc-100'
+                    : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
                 {item}
@@ -250,7 +245,7 @@ export default function ToolkitsPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={`Search across ${toolkits.length}+ toolkits...`}
-              className="h-9 w-full rounded-md border border-white/[0.15] bg-white/[0.045] pl-9 pr-3 text-sm text-white outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.25] focus:ring-1 focus:ring-white/[0.25]"
+              className="h-9 w-full rounded-md border border-white/[0.1] bg-transparent pl-9 pr-3 text-sm text-zinc-100 shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.2] focus:ring-1 focus:ring-white/[0.2]"
             />
           </div>
         </div>
@@ -278,8 +273,6 @@ export default function ToolkitsPage() {
                       {
                         containerType: 'size',
                         aspectRatio: '1 / 1',
-                        ['--pointer-x' as string]: '-10',
-                        ['--pointer-y' as string]: '-10',
                       } as CSSProperties
                     }
                     onMouseMove={(event) => {
@@ -290,8 +283,8 @@ export default function ToolkitsPage() {
                       event.currentTarget.style.setProperty('--pointer-y', (y - 0.5).toFixed(3));
                     }}
                     onMouseLeave={(event) => {
-                      event.currentTarget.style.setProperty('--pointer-x', '-10');
-                      event.currentTarget.style.setProperty('--pointer-y', '-10');
+                      event.currentTarget.style.removeProperty('--pointer-x');
+                      event.currentTarget.style.removeProperty('--pointer-y');
                     }}
                   >
                     <div className="absolute inset-0 overflow-hidden rounded-[14px] [clip-path:inset(0_round_12px)]">
@@ -307,15 +300,15 @@ export default function ToolkitsPage() {
                         <img alt="" className="h-16 w-16" draggable={false} src={toolkit.logoUrl} />
                       </div>
 
-                      <div className="relative z-[2] flex h-full flex-col items-center justify-center gap-2.5 p-4">
-                        <div className="absolute right-3 top-3 z-10">
+                      <div className="relative z-[2] flex h-full flex-col items-center justify-center gap-1.5 p-4 pt-10">
+                        <div className="absolute right-3 top-3 z-[1]">
                           {toolkit.status === 'connect' ? (
                             <button
                               onClick={(event) => {
                                 event.stopPropagation();
                                 void handleConnect(toolkit.key, toolkit.key);
                               }}
-                              className="inline-flex h-7 items-center justify-center rounded-md bg-white px-2.5 text-xs font-medium text-black transition-all duration-200 group-hover:scale-105 group-hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex h-7 items-center justify-center gap-1.5 rounded-md bg-white px-2.5 text-xs font-medium text-black transition-all duration-200 group-hover:scale-105 group-hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                               disabled={isConnecting}
                             >
                               {isConnecting ? 'Connecting...' : 'Connect'}
@@ -333,13 +326,13 @@ export default function ToolkitsPage() {
                           )}
                         </div>
 
-                        <img alt={`${toolkit.name} logo`} className="h-12 w-12 select-none" draggable={false} src={toolkit.logoUrl} />
-                        <h3 className="select-none text-center text-[13px] font-bold tracking-tight text-white/90">{toolkit.name}</h3>
+                        <img alt={`${toolkit.name} logo`} className="h-12 w-12 select-none transition-opacity duration-300 ease-in" draggable={false} src={toolkit.logoUrl} />
+                        <h3 className="select-none text-center text-sm font-semibold text-zinc-100">{toolkit.name}</h3>
                       </div>
                     </div>
 
                     <div
-                      className="border-glow pointer-events-none absolute inset-0 z-[3] rounded-[14px] [clip-path:inset(0_round_12px)]"
+                      className="pointer-events-none absolute inset-0 z-[3] rounded-[14px] [clip-path:inset(0_round_12px)]"
                       style={{
                         border: '2px solid transparent',
                         background: toolkit.borderGradient,

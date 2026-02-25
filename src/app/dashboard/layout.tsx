@@ -49,6 +49,15 @@ function BillingIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function SidebarIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" {...props}>
+      <rect x="3.5" y="4" width="17" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9.5 4v16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function ThemeIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg fill="none" viewBox="0 0 24 24" {...props}>
@@ -74,9 +83,9 @@ const navItems: NavItem[] = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const iconButtonBase =
-    'inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium text-zinc-200 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-white/[0.08] hover:text-white';
+    'inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-[8px] text-sm font-medium text-zinc-100 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-[#252525] hover:text-white';
   const utilityButtonBase =
-    'inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-2 text-sm font-medium text-zinc-200 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-white/[0.08] hover:text-white';
+    'inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] px-2.5 text-sm font-medium text-zinc-100 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-[#252525] hover:text-white';
   
   return (
     <div className="flex h-screen flex-col bg-[#0a0a0a] text-white font-sans">
@@ -112,7 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={active ? `${iconButtonBase} bg-white/[0.12]` : iconButtonBase}
+                  className={active ? `${iconButtonBase} bg-[#252525]` : iconButtonBase}
                   title={item.label}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -120,6 +129,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               );
             })}
           </nav>
+
+          {pathname === '/dashboard' ? (
+            <button className={`${iconButtonBase} hidden md:inline-flex bg-[#252525]`} title="Toggle execution panel">
+              <SidebarIcon className="h-4 w-4" />
+            </button>
+          ) : null}
 
           <Link
             href="/dashboard/usage"

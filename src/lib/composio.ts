@@ -42,7 +42,7 @@ function deriveStatus(connection: ConnectionItem): ToolkitConnectionState {
   const normalizedStatus = connection.status?.toUpperCase();
   const isDisabled = connection.isDisabled === true || connection.enabled === false;
 
-  if (isDisabled) {
+  if (isDisabled || normalizedStatus === 'FAILED' || normalizedStatus === 'EXPIRED') {
     return {
       status: 'connect',
       connectedAccountId: connection.id,
@@ -58,7 +58,7 @@ function deriveStatus(connection: ConnectionItem): ToolkitConnectionState {
 
   if (normalizedStatus === 'INITIATED') {
     return {
-      status: 'connected',
+      status: 'connect',
       connectedAccountId: connection.id,
     };
   }
