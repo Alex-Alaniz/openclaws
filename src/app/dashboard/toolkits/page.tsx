@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type Tab = 'All' | 'Connected';
 type Status = 'connect' | 'connected' | 'active';
@@ -211,7 +211,7 @@ function buildBorderGradient(index: number, primary: string, secondary: string) 
   return `linear-gradient(${145 + (index % 20)}deg, ${withAlpha(primary, 0.94)}, ${withAlpha('#18181b', 0.84)}, ${withAlpha(secondary, 0.7)})`;
 }
 
-const toolkits: Toolkit[] = TOOLKIT_SEEDS.map((seed, index) => {
+const ALL_TOOLKITS: Toolkit[] = TOOLKIT_SEEDS.map((seed, index) => {
   const primary = seed.brandColor ?? COLOR_POOL[index % COLOR_POOL.length];
   const secondary = COLOR_POOL[(index * 3 + 7) % COLOR_POOL.length];
   const status = seed.status ?? (ACTIVE_BY_DEFAULT.has(seed.name) ? 'active' : CONNECTED_BY_DEFAULT.has(seed.name) || index % 9 === 0 ? 'connected' : 'connect');
@@ -224,6 +224,7 @@ export default function ToolkitsPage() {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
   const [isGridHovering, setIsGridHovering] = useState(false);
   const [spotlightColor, setSpotlightColor] = useState('#38BDF8');
+  const [toolkits, setToolkits] = useState<Toolkit[]>(ALL_TOOLKITS);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const isAdvancingRef = useRef(false);
@@ -235,7 +236,7 @@ export default function ToolkitsPage() {
       const matchesTab = tab === 'All' ? true : toolkit.status === 'connected' || toolkit.status === 'active';
       return matchesSearch && matchesTab;
     });
-  }, [query, tab]);
+  }, [query, tab, toolkits]);
 
   const visibleToolkits = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
@@ -261,8 +262,22 @@ export default function ToolkitsPage() {
     return () => observer.disconnect();
   }, [filtered.length, hasMore]);
 
+  const handleConnect = (key: string) => {
+    setToolkits(prev => prev.map(t => t.key === key ? { ...t, status: 'connected' } : t));
+  };
+
   return (
     <div className="h-full overflow-y-auto bg-[#070707] text-white">
+      <style jsx global>{`
+        .toolkit-card {
+          background-color: #0c0c0c !important;
+          border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .toolkit-card:hover {
+          border-color: rgba(255, 255, 255, 0.2) !important;
+          background-color: #0e0e0e !important;
+        }
+      `}</style>
       <svg className="hidden" aria-hidden="true">
         <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="20" /></filter></defs>
       </svg>
@@ -277,30 +292,77 @@ export default function ToolkitsPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-between px-1 text-[11px] font-medium text-zinc-500">
-          <p>Showing {visibleToolkits.length} of {filtered.length}</p>
-          {tab === 'Connected' ? <p>Connected + Active only</p> : <p>All toolkits</p>}
-        </div>
-        <div ref={gridRef} className="relative" style={{ ['--grid-x' as string]: '50%', ['--grid-y' as string]: '50%' }}>
-          <div className={`pointer-events-none absolute -inset-[120px] z-[0] hidden transition-opacity duration-300 md:block ${isGridHovering ? 'opacity-100' : 'opacity-0'}`} style={{ background: `radial-gradient(600px circle at var(--grid-x) var(--grid-y), ${withAlpha(spotlightColor, 0.15)} 0%, ${withAlpha(spotlightColor, 0.05)} 40%, transparent 80%), radial-gradient(800px circle at var(--grid-x) var(--grid-y), ${withAlpha(spotlightColor, 0.08)} 0%, transparent 70%)`, filter: 'blur(40px)' }} />
-          <div className="relative z-[1] grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5" onMouseEnter={() => setIsGridHovering(true)} onMouseLeave={() => { setIsGridHovering(false); setSpotlightColor('#38BDF8'); }} onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const x = ((event.clientX - rect.left) / rect.width) * 100; const y = ((event.clientY - rect.top) / rect.height) * 100; gridRef.current?.style.setProperty('--grid-x', `${x.toFixed(2)}%`); gridRef.current?.style.setProperty('--grid-y', `${y.toFixed(2)}%`); }}>
+        
+        <div 
+          ref={gridRef} 
+          className="relative" 
+          style={{ ['--grid-x' as string]: '50%', ['--grid-y' as string]: '50%' }}
+          onMouseMove={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 100;
+            const y = ((event.clientY - rect.top) / rect.height) * 100;
+            gridRef.current?.style.setProperty('--grid-x', `${x.toFixed(2)}%`);
+            gridRef.current?.style.setProperty('--grid-y', `${y.toFixed(2)}%`);
+          }}
+          onMouseEnter={() => setIsGridHovering(true)}
+          onMouseLeave={() => {
+            setIsGridHovering(false);
+            setSpotlightColor('#38BDF8');
+          }}
+        >
+          <div 
+            className={`pointer-events-none absolute -inset-[200px] z-[0] hidden transition-opacity duration-300 md:block ${isGridHovering ? 'opacity-100' : 'opacity-0'}`} 
+            style={{ 
+              background: `radial-gradient(400px circle at var(--grid-x) var(--grid-y), ${withAlpha(spotlightColor, 0.12)} 0%, ${withAlpha(spotlightColor, 0.04)} 35%, transparent 70%)`,
+              filter: 'blur(50px)' 
+            }} 
+          />
+          
+          <div className="relative z-[1] grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
             {visibleToolkits.map((toolkit) => {
               const logoUrl = getLogoUrl(toolkit.slug);
               return (
-                <article key={toolkit.key} className="toolkit-card group relative aspect-square min-h-[240px] cursor-pointer rounded-[24px] border border-white/[0.08] bg-[#0C0C0C]/80 bg-clip-padding backdrop-blur-[2px] outline outline-1 outline-white/[0.04] transition-[border-color,box-shadow,filter,transform] duration-300 ease-out hover:border-white/[0.2] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] active:scale-[0.98] xl:min-h-[240px]" style={{ containerType: 'size', transform: 'perspective(1200px) rotateX(calc(var(--pointer-y, 0) * -3.5deg)) rotateY(calc(var(--pointer-x, 0) * 3.5deg)) translateY(var(--hover-y, 0px))', ['--pointer-x' as string]: 0, ['--pointer-y' as string]: 0, ['--border-angle' as string]: '130deg', ['--hover-y' as string]: '0px' }}
-                  onMouseEnter={(e) => { setSpotlightColor(toolkit.brandColor); e.currentTarget.style.setProperty('--hover-y', '-6px'); }}
-                  onMouseMove={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - rect.left) / rect.width; const y = (e.clientY - rect.top) / rect.height; const centeredX = (x - 0.5) * 2; const centeredY = (y - 0.5) * 2; const angle = Math.atan2(centeredY, centeredX) * (180 / Math.PI) + 180; e.currentTarget.style.setProperty('--pointer-x', centeredX.toString()); e.currentTarget.style.setProperty('--pointer-y', centeredY.toString()); e.currentTarget.style.setProperty('--border-angle', `${angle.toFixed(2)}deg`); }}
-                  onMouseLeave={(e) => { e.currentTarget.style.setProperty('--pointer-x', '0'); e.currentTarget.style.setProperty('--pointer-y', '0'); e.currentTarget.style.setProperty('--border-angle', '130deg'); e.currentTarget.style.setProperty('--hover-y', '0px'); }}>
-                  <div className="absolute inset-0 overflow-hidden rounded-[24px] [clip-path:inset(0_round_24px)]">
-                    <div className="pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-300 group-hover:opacity-[0.85]" style={{ background: `radial-gradient(85% 85% at calc(50% + (var(--pointer-x, 0) * 28%)) calc(50% + (var(--pointer-y, 0) * 26%)), ${withAlpha(toolkit.brandColor, 0.65)} 0%, ${withAlpha(toolkit.brandColor, 0.2)} 45%, transparent 85%)`, filter: 'blur(24px) saturate(1.5)' }} />
-                    <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-300 group-hover:opacity-70" style={{ background: `radial-gradient(150% 130% at 50% 120%, ${withAlpha(toolkit.brandColor, 0.3)} 0%, transparent 60%)` }} />
+                <article key={toolkit.key} className="toolkit-card group relative aspect-square min-h-[240px] cursor-pointer rounded-[24px] border border-white/[0.08] bg-[#0C0C0C] outline outline-1 outline-white/[0.04] transition-all duration-300 ease-out hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] active:scale-[0.98] xl:min-h-[240px]" 
+                  style={{ 
+                    containerType: 'size', 
+                    transform: 'perspective(1200px) rotateX(calc(var(--pointer-y, 0) * -3.5deg)) rotateY(calc(var(--pointer-x, 0) * 3.5deg)) translateY(var(--hover-y, 0px))', 
+                    ['--pointer-x' as string]: 0, 
+                    ['--pointer-y' as string]: 0, 
+                    ['--border-angle' as string]: '130deg', 
+                    ['--hover-y' as string]: '0px' 
+                  }}
+                  onMouseEnter={() => { setSpotlightColor(toolkit.brandColor); }}
+                  onMouseMove={(e) => { 
+                    const rect = e.currentTarget.getBoundingClientRect(); 
+                    const x = (e.clientX - rect.left) / rect.width; 
+                    const y = (e.clientY - rect.top) / rect.height; 
+                    const centeredX = (x - 0.5) * 2; 
+                    const centeredY = (y - 0.5) * 2; 
+                    const angle = Math.atan2(centeredY, centeredX) * (180 / Math.PI) + 180; 
+                    e.currentTarget.style.setProperty('--pointer-x', centeredX.toString()); 
+                    e.currentTarget.style.setProperty('--pointer-y', centeredY.toString()); 
+                    e.currentTarget.style.setProperty('--border-angle', `${angle.toFixed(2)}deg`); 
+                  }}
+                  onMouseLeave={(e) => { 
+                    e.currentTarget.style.setProperty('--pointer-x', '0'); 
+                    e.currentTarget.style.setProperty('--pointer-y', '0'); 
+                    e.currentTarget.style.setProperty('--border-angle', '130deg'); 
+                  }}>
+                  <div className="absolute inset-0 overflow-hidden rounded-[24px]">
+                    <div className="pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-300 group-hover:opacity-[0.85]" style={{ background: `radial-gradient(85% 85% at calc(50% + (var(--pointer-x, 0) * 28%)) calc(50% + (var(--pointer-y, 0) * 26%)), ${withAlpha(toolkit.brandColor, 0.5)} 0%, ${withAlpha(toolkit.brandColor, 0.1)} 45%, transparent 85%)`, filter: 'blur(24px) saturate(1.5)' }} />
+                    <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-300 group-hover:opacity-70" style={{ background: `radial-gradient(150% 130% at 50% 120%, ${withAlpha(toolkit.brandColor, 0.2)} 0%, transparent 60%)` }} />
                     <div className="pointer-events-none absolute inset-0 z-[3] grid place-items-center opacity-0 transition-opacity duration-300 group-hover:opacity-[0.45] will-change-transform" style={{ filter: "url('#toolkit-blur') saturate(7) brightness(1.5)", translate: 'calc(var(--pointer-x, -10) * 60cqi) calc(var(--pointer-y, -10) * 60cqh)', scale: '4.2' }}>
                       <img alt="" className="h-20 w-20" draggable={false} src={logoUrl} />
                     </div>
                     <div className="relative z-[4] flex h-full flex-col items-center justify-center gap-3 p-5 pt-10">
                       <div className="absolute right-4 top-4 z-[3]">
                         {toolkit.status === 'connect' ? (
-                          <button className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group-hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]">Connect</button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleConnect(toolkit.key); }}
+                            className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] group-hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]"
+                          >
+                            Connect
+                          </button>
                         ) : (
                           <span className={`inline-flex h-8 items-center justify-center rounded-[10px] border border-white/15 px-3.5 text-[11px] font-bold tracking-tight text-white ${toolkit.status === 'active' ? 'bg-emerald-500/90' : 'bg-emerald-600/85'}`}>{toolkit.status === 'active' ? 'Active' : 'Connected'}</span>
                         )}
