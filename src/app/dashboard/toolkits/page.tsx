@@ -203,24 +203,30 @@ function getLogoUrl(slug: string) {
   return `https://logos.composio.dev/api/${slug}`;
 }
 
+function buildBorderGradient(index: number, primary: string, secondary: string) {
+  const mode = index % 4;
+  if (mode === 0) return `linear-gradient(${165 + (index % 24)}deg, ${withAlpha(primary, 0.97)}, ${withAlpha(secondary, 0.78)})`;
+  if (mode === 1) return `linear-gradient(${220 - (index % 34)}deg, ${withAlpha('#ffffff', 0.72)}, ${withAlpha(primary, 0.9)}, ${withAlpha(secondary, 0.68)})`;
+  if (mode === 2) return `conic-gradient(from var(--border-angle, ${125 + (index % 30)}deg), ${withAlpha(primary, 0.96)}, ${withAlpha(secondary, 0.9)}, ${withAlpha(primary, 0.62)}, ${withAlpha(secondary, 0.94)}, ${withAlpha(primary, 0.96)})`;
+  return `linear-gradient(${145 + (index % 20)}deg, ${withAlpha(primary, 0.94)}, ${withAlpha('#18181b', 0.84)}, ${withAlpha(secondary, 0.7)})`;
+}
+
 const ALL_TOOLKITS: Toolkit[] = TOOLKIT_SEEDS.map((seed, index) => {
   const primary = seed.brandColor ?? COLOR_POOL[index % COLOR_POOL.length];
+  const secondary = COLOR_POOL[(index * 3 + 7) % COLOR_POOL.length];
   const status = seed.status ?? (ACTIVE_BY_DEFAULT.has(seed.name) ? 'active' : CONNECTED_BY_DEFAULT.has(seed.name) || index % 9 === 0 ? 'connected' : 'connect');
-  
-  // Refined gradient for the "colorful line edges"
-  const secondary = COLOR_POOL[(index * 7 + 13) % COLOR_POOL.length];
-  const borderGradient = `linear-gradient(${135 + (index % 45)}deg, ${withAlpha(primary, 0.95)} 0%, ${withAlpha(secondary, 0.85)} 100%)`;
-
-  return { key: `${seed.slug}-${index}`, name: seed.name, slug: seed.slug, status, brandColor: primary, borderGradient };
+  return { key: `${seed.slug}-${index}`, name: seed.name, slug: seed.slug, status, brandColor: primary, borderGradient: buildBorderGradient(index, primary, secondary) };
 });
 
 export default function ToolkitsPage() {
   const [tab, setTab] = useState<Tab>('All');
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
+  const [isGridHovering, setIsGridHovering] = useState(false);
+  const [spotlightColor, setSpotlightColor] = useState('#38BDF8');
   const [toolkits, setToolkits] = useState<Toolkit[]>(ALL_TOOLKITS);
-  const gridRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const isAdvancingRef = useRef(false);
 
   const filtered = useMemo(() => {
@@ -251,29 +257,10 @@ export default function ToolkitsPage() {
         setVisibleCount((previous) => Math.min(previous + LOAD_BATCH_SIZE, filtered.length));
         isAdvancingRef.current = false;
       });
-    }, { root: null, rootMargin: '400px 0px 400px 0px', threshold: 0.01 });
+    }, { root: null, rootMargin: '420px 0px 220px 0px', threshold: 0.01 });
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [filtered.length, hasMore]);
-
-  const handleGridMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    // Set grid-level coords for absolute precision
-    event.currentTarget.style.setProperty('--grid-x', `${x}px`);
-    event.currentTarget.style.setProperty('--grid-y', `${y}px`);
-
-    // Update individual card local offsets
-    event.currentTarget.querySelectorAll<HTMLElement>('.toolkit-card').forEach((card) => {
-      const cardRect = card.getBoundingClientRect();
-      const localX = event.clientX - cardRect.left;
-      const localY = event.clientY - cardRect.top;
-      card.style.setProperty('--x', `${localX}px`);
-      card.style.setProperty('--y', `${localY}px`);
-    });
-  };
 
   const handleConnect = (key: string) => {
     setToolkits(prev => prev.map(t => t.key === key ? { ...t, status: 'connected' } : t));
@@ -282,60 +269,15 @@ export default function ToolkitsPage() {
   return (
     <div className="h-full overflow-y-auto bg-[#070707] text-white">
       <style jsx global>{`
-        .toolkit-card {
-          background-color: #0c0c0c;
-          border: 1px solid rgba(255, 255, 255, 0.04);
-          position: relative;
-          transition: background-color 0.3s ease;
-        }
-        
-        .toolkit-card:hover {
-          background-color: #0e0e0e;
-        }
-
-        /* The "Hot Corners" colorful line edges effect */
-        .toolkit-card::before {
-          content: "";
-          position: absolute;
-          inset: -1.5px;
-          border-radius: inherit;
-          padding: 1.5px; /* Thicker for the colorful edge */
-          background: var(--toolkit-gradient);
-          -webkit-mask: 
-            radial-gradient(140px circle at var(--x) var(--y), black 0%, transparent 100%),
-            linear-gradient(#fff 0 0) content-box;
-          -webkit-mask-composite: source-in, xor;
-          mask-composite: intersect, exclude;
-          pointer-events: none;
-          z-index: 10;
-          opacity: 0;
-          transition: opacity 0.4s ease;
-        }
-
-        /* Activation zone: only cards within proximity light up their edges */
-        .grid-container:hover .toolkit-card::before {
-          opacity: 1;
-        }
-
-        /* Subtle inner glow when edge is active */
-        .toolkit-card::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: radial-gradient(100px circle at var(--x) var(--y), var(--toolkit-color-alpha), transparent 100%);
-          pointer-events: none;
-          z-index: 1;
-          opacity: 0;
-          transition: opacity 0.4s ease;
-        }
-        .grid-container:hover .toolkit-card::after {
-          opacity: 0.15;
+        .toolkit-card .border-glow {
+          animation: none;
         }
       `}</style>
-
+      <svg className="hidden" aria-hidden="true">
+        <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="20" /></filter></defs>
+      </svg>
       <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-10 pt-6 sm:px-6 xl:px-8">
-        <div className="sticky top-0 z-20 rounded-[14px] border border-white/[0.08] bg-[#0A0A0A]/95 p-2 shadow-[0_16px_42px_rgba(0,0,0,0.44)] backdrop-blur-md">
+        <div className="sticky top-0 z-20 rounded-[14px] border border-white/[0.1] bg-[#101010]/96 p-2 shadow-[0_16px_42px_rgba(0,0,0,0.44)] backdrop-blur-md">
           <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search across ${toolkits.length}+ toolkits...`} className="h-[42px] w-full rounded-[10px] border border-white/[0.12] bg-[#161616] px-4 text-[13px] font-medium text-white outline-none ring-0 placeholder:text-zinc-500 focus:border-white/30 xl:max-w-[640px]" />
             <div className="flex h-9 items-center gap-1.5 rounded-[10px] border border-white/[0.12] bg-[#161616] p-1">
@@ -348,43 +290,55 @@ export default function ToolkitsPage() {
         
         <div 
           ref={gridRef} 
-          className="grid-container relative grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-4" 
-          onMouseMove={handleGridMouseMove}
+          className="relative" 
+          style={{ ['--grid-x' as string]: '50%', ['--grid-y' as string]: '50%' }}
+          onMouseMove={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 100;
+            const y = ((event.clientY - rect.top) / rect.height) * 100;
+            gridRef.current?.style.setProperty('--grid-x', `${x.toFixed(2)}%`);
+            gridRef.current?.style.setProperty('--grid-y', `${y.toFixed(2)}%`);
+          }}
+          onMouseEnter={() => setIsGridHovering(true)}
+          onMouseLeave={() => {
+            setIsGridHovering(false);
+            setSpotlightColor('#38BDF8');
+          }}
         >
-          {visibleToolkits.map((toolkit) => {
-            const logoUrl = getLogoUrl(toolkit.slug);
-            return (
-              <article 
-                key={toolkit.key} 
-                className="toolkit-card aspect-square min-h-[240px] cursor-pointer rounded-[24px] overflow-hidden" 
-                style={{ 
-                  '--toolkit-gradient': toolkit.borderGradient,
-                  '--toolkit-color-alpha': withAlpha(toolkit.brandColor, 0.3),
-                  '--x': '0px',
-                  '--y': '0px'
-                } as any}
-              >
-                <div className="relative z-[2] h-full w-full">
-                  <div className="relative z-[4] flex h-full flex-col items-center justify-center gap-3 p-5 pt-10">
-                    <div className="absolute right-4 top-4 z-[3]">
-                      {toolkit.status === 'connect' ? (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleConnect(toolkit.key); }}
-                          className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-200 hover:scale-[1.05] active:scale-[0.95]"
-                        >
-                          Connect
-                        </button>
-                      ) : (
-                        <span className={`inline-flex h-8 items-center justify-center rounded-[10px] border border-white/10 px-3.5 text-[11px] font-bold tracking-tight text-white ${toolkit.status === 'active' ? 'bg-emerald-500/80' : 'bg-emerald-600/75'}`}>{toolkit.status === 'active' ? 'Active' : 'Connected'}</span>
-                      )}
+          <div className={`pointer-events-none absolute -inset-[120px] z-[0] hidden transition-opacity duration-300 md:block ${isGridHovering ? 'opacity-100' : 'opacity-0'}`} style={{ background: `radial-gradient(600px circle at var(--grid-x) var(--grid-y), ${withAlpha(spotlightColor, 0.15)} 0%, ${withAlpha(spotlightColor, 0.05)} 40%, transparent 80%), radial-gradient(800px circle at var(--grid-x) var(--grid-y), ${withAlpha(spotlightColor, 0.08)} 0%, transparent 70%)`, filter: 'blur(40px)' }} />
+          
+          <div className="relative z-[1] grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-4">
+            {visibleToolkits.map((toolkit) => {
+              const logoUrl = getLogoUrl(toolkit.slug);
+              return (
+                <article key={toolkit.key} className="toolkit-card group relative aspect-square min-h-[240px] cursor-pointer rounded-[24px] border border-white/[0.08] bg-[#0C0C0C]/80 bg-clip-padding backdrop-blur-[2px] outline outline-1 outline-white/[0.04] transition-[border-color,box-shadow,filter,transform] duration-300 ease-out hover:border-white/[0.2] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] active:scale-[0.98] xl:min-h-[240px]" 
+                  style={{ containerType: 'size', transform: 'perspective(1200px) rotateX(calc(var(--pointer-y, 0) * -3.5deg)) rotateY(calc(var(--pointer-x, 0) * 3.5deg)) translateY(var(--hover-y, 0px))', ['--pointer-x' as string]: 0, ['--pointer-y' as string]: 0, ['--border-angle' as string]: '130deg', ['--hover-y' as string]: '0px' } as any}
+                  onMouseEnter={(e) => { setSpotlightColor(toolkit.brandColor); e.currentTarget.style.setProperty('--hover-y', '-6px'); }}
+                  onMouseMove={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - rect.left) / rect.width; const y = (e.clientY - rect.top) / rect.height; const centeredX = (x - 0.5) * 2; const centeredY = (y - 0.5) * 2; const angle = Math.atan2(centeredY, centeredX) * (180 / Math.PI) + 180; e.currentTarget.style.setProperty('--pointer-x', centeredX.toString()); e.currentTarget.style.setProperty('--pointer-y', centeredY.toString()); e.currentTarget.style.setProperty('--border-angle', `${angle.toFixed(2)}deg`); }}
+                  onMouseLeave={(e) => { e.currentTarget.style.setProperty('--pointer-x', '0'); e.currentTarget.style.setProperty('--pointer-y', '0'); e.currentTarget.style.setProperty('--border-angle', '130deg'); e.currentTarget.style.setProperty('--hover-y', '0px'); }}>
+                  <div className="absolute inset-0 overflow-hidden rounded-[24px] [clip-path:inset(0_round_24px)]">
+                    <div className="pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-300 group-hover:opacity-[0.85]" style={{ background: `radial-gradient(85% 85% at calc(50% + (var(--pointer-x, 0) * 28%)) calc(50% + (var(--pointer-y, 0) * 26%)), ${withAlpha(toolkit.brandColor, 0.65)} 0%, ${withAlpha(toolkit.brandColor, 0.2)} 45%, transparent 85%)`, filter: 'blur(24px) saturate(1.5)' }} />
+                    <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-300 group-hover:opacity-70" style={{ background: `radial-gradient(150% 130% at 50% 120%, ${withAlpha(toolkit.brandColor, 0.3)} 0%, transparent 60%)` }} />
+                    <div className="pointer-events-none absolute inset-0 z-[3] grid place-items-center opacity-0 transition-opacity duration-300 group-hover:opacity-[0.45] will-change-transform" style={{ filter: "url('#toolkit-blur') saturate(7) brightness(1.5)", translate: 'calc(var(--pointer-x, -10) * 60cqi) calc(var(--pointer-y, -10) * 60cqh)', scale: '4.2' }}>
+                      <img alt="" className="h-20 w-20" draggable={false} src={logoUrl} />
                     </div>
-                    <img alt="App logo" className="h-14 w-14 select-none drop-shadow-2xl" draggable={false} src={logoUrl} />
-                    <h3 className="select-none text-center text-[15px] font-semibold tracking-tight text-white/80">{toolkit.name}</h3>
+                    <div className="relative z-[4] flex h-full flex-col items-center justify-center gap-3 p-5 pt-10">
+                      <div className="absolute right-4 top-4 z-[3]">
+                        {toolkit.status === 'connect' ? (
+                          <button onClick={(e) => { e.stopPropagation(); handleConnect(toolkit.key); }} className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group-hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]">Connect</button>
+                        ) : (
+                          <span className={`inline-flex h-8 items-center justify-center rounded-[10px] border border-white/15 px-3.5 text-[11px] font-bold tracking-tight text-white ${toolkit.status === 'active' ? 'bg-emerald-500/90' : 'bg-emerald-600/85'}`}>{toolkit.status === 'active' ? 'Active' : 'Connected'}</span>
+                        )}
+                      </div>
+                      <img alt="App logo" className="h-14 w-14 select-none drop-shadow-2xl" draggable={false} src={logoUrl} />
+                      <h3 className="select-none text-center text-[15px] font-semibold tracking-tight text-white/90">{toolkit.name}</h3>
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
+                  <div className="border-glow pointer-events-none absolute inset-0 z-[5] rounded-[24px] opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ border: '2px solid transparent', background: toolkit.borderGradient, maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)', maskOrigin: 'border-box, padding-box', maskClip: 'border-box, padding-box', maskComposite: 'exclude', WebkitMaskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)', WebkitMaskOrigin: 'border-box, padding-box', WebkitMaskClip: 'border-box, padding-box', WebkitMaskComposite: 'xor', filter: `drop-shadow(0 0 35px ${withAlpha(toolkit.brandColor, 0.85)})` }} />
+                </article>
+              );
+            })}
+          </div>
         </div>
         {filtered.length === 0 ? <div className="rounded-xl border border-white/10 bg-[#121212] px-5 py-8 text-center text-sm text-zinc-400">No toolkits match your search.</div> : null}
         {hasMore ? <div ref={sentinelRef} className="h-8 w-full" /> : null}
