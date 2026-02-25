@@ -271,13 +271,13 @@ function applyCardLighting(card: HTMLElement, clientX: number, clientY: number) 
   const centerProximity = clamp(1 - centerDistance * 1.08);
 
   const hotCornerAlpha = clamp(0.24 + cornerProximity * 0.84 + edgeProximity * 0.08, 0, 1);
-  const idleCornerAlpha = clamp(cornerProximity * 0.03, 0, 0.05);
+  const idleCornerAlpha = clamp(cornerProximity * 0.008, 0, 0.012);
   const cornerAlphas = [idleCornerAlpha, idleCornerAlpha, idleCornerAlpha, idleCornerAlpha];
   cornerAlphas[activeCorner] = hotCornerAlpha;
 
-  const dimEdgeAlpha = clamp(0.008 + edgeProximity * 0.06, 0, 0.09);
+  const dimEdgeAlpha = clamp(0.004 + edgeProximity * 0.022, 0, 0.03);
   const hotEdgeAlpha = clamp(0.22 + cornerProximity * 0.78 + edgeProximity * 0.12, 0, 1);
-  const edgeAlphas = [dimEdgeAlpha * 0.45, dimEdgeAlpha * 0.45, dimEdgeAlpha * 0.45, dimEdgeAlpha * 0.45];
+  const edgeAlphas = [dimEdgeAlpha * 0.22, dimEdgeAlpha * 0.22, dimEdgeAlpha * 0.22, dimEdgeAlpha * 0.22];
   const [edgeA, edgeB] = CORNER_TO_EDGE_INDEXES[activeCorner];
   edgeAlphas[edgeA] = hotEdgeAlpha;
   edgeAlphas[edgeB] = hotEdgeAlpha;
