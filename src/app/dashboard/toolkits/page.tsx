@@ -189,11 +189,11 @@ function buildEdgeGradient(stops: readonly string[]) {
 
 function buildAuraGradient(corners: [string, string, string, string]) {
   return [
-    `radial-gradient(92% 92% at 0% 0%, ${withAlpha(corners[0], 0.16)} 0%, ${withAlpha(corners[0], 0.07)} 36%, ${withAlpha(corners[0], 0)} 74%)`,
-    `radial-gradient(92% 92% at 100% 0%, ${withAlpha(corners[1], 0.16)} 0%, ${withAlpha(corners[1], 0.07)} 36%, ${withAlpha(corners[1], 0)} 74%)`,
-    `radial-gradient(92% 92% at 0% 100%, ${withAlpha(corners[2], 0.16)} 0%, ${withAlpha(corners[2], 0.07)} 36%, ${withAlpha(corners[2], 0)} 74%)`,
-    `radial-gradient(92% 92% at 100% 100%, ${withAlpha(corners[3], 0.16)} 0%, ${withAlpha(corners[3], 0.07)} 36%, ${withAlpha(corners[3], 0)} 74%)`,
-    'radial-gradient(80% 80% at 50% 50%, rgba(255,255,255,0.01) 0%, rgba(255,255,255,0) 74%)',
+    `radial-gradient(88% 88% at 0% 0%, ${withAlpha(corners[0], 0.13)} 0%, ${withAlpha(corners[0], 0.045)} 34%, ${withAlpha(corners[0], 0)} 70%)`,
+    `radial-gradient(88% 88% at 100% 0%, ${withAlpha(corners[1], 0.13)} 0%, ${withAlpha(corners[1], 0.045)} 34%, ${withAlpha(corners[1], 0)} 70%)`,
+    `radial-gradient(88% 88% at 0% 100%, ${withAlpha(corners[2], 0.13)} 0%, ${withAlpha(corners[2], 0.045)} 34%, ${withAlpha(corners[2], 0)} 70%)`,
+    `radial-gradient(88% 88% at 100% 100%, ${withAlpha(corners[3], 0.13)} 0%, ${withAlpha(corners[3], 0.045)} 34%, ${withAlpha(corners[3], 0)} 70%)`,
+    'radial-gradient(72% 72% at 50% 50%, rgba(255,255,255,0.006) 0%, rgba(255,255,255,0) 66%)',
   ].join(', ');
 }
 
@@ -220,6 +220,27 @@ function clamp(value: number, min = 0, max = 1) {
   return Math.min(Math.max(value, min), max);
 }
 
+const CORNER_TO_EDGE_INDEXES: ReadonlyArray<readonly [number, number]> = [
+  [0, 3], // top + left
+  [0, 1], // top + right
+  [2, 3], // bottom + left
+  [2, 1], // bottom + right
+];
+
+const CORNER_ALPHA_VARS = [
+  '--corner-tl-alpha',
+  '--corner-tr-alpha',
+  '--corner-bl-alpha',
+  '--corner-br-alpha',
+] as const;
+
+const EDGE_ALPHA_VARS = [
+  '--edge-top-alpha',
+  '--edge-right-alpha',
+  '--edge-bottom-alpha',
+  '--edge-left-alpha',
+] as const;
+
 function applyCardLighting(card: HTMLElement, clientX: number, clientY: number) {
   const rect = card.getBoundingClientRect();
   const rawX = (clientX - rect.left) / rect.width;
@@ -227,34 +248,60 @@ function applyCardLighting(card: HTMLElement, clientX: number, clientY: number) 
   const x = clamp(rawX);
   const y = clamp(rawY);
 
-  const edgeDistance = Math.min(x, 1 - x, y, 1 - y);
-  const edgeProximity = clamp(1 - edgeDistance / 0.23);
-
-  const cornerDistance = Math.min(
+  const cornerDistances = [
     Math.hypot(x, y),
     Math.hypot(1 - x, y),
     Math.hypot(x, 1 - y),
     Math.hypot(1 - x, 1 - y),
-  );
-  const cornerProximity = clamp(1 - cornerDistance / 0.46);
+  ] as const;
+  let activeCorner = 0;
+  for (let index = 1; index < cornerDistances.length; index += 1) {
+    if (cornerDistances[index] < cornerDistances[activeCorner]) {
+      activeCorner = index;
+    }
+  }
+
+  const cornerDistance = cornerDistances[activeCorner];
+  const cornerProximity = clamp(1 - cornerDistance / 0.58);
+
+  const edgeDistance = Math.min(x, 1 - x, y, 1 - y);
+  const edgeProximity = clamp(1 - edgeDistance / 0.24);
 
   const centerDistance = Math.hypot(x - 0.5, y - 0.5) / 0.70710678118;
-  const centerProximity = clamp(1 - centerDistance);
+  const centerProximity = clamp(1 - centerDistance * 1.08);
 
-  const edgeAlpha = clamp(0.04 + edgeProximity * 0.34 + cornerProximity * 0.06, 0, 0.42);
-  const cornerAlpha = clamp(0.16 + cornerProximity * 0.9, 0, 1);
-  const auraAlpha = clamp(0.03 + centerProximity * 0.2 + edgeProximity * 0.06, 0, 0.32);
-  const edgeBright = clamp(0.2 + edgeProximity * 0.45 + cornerProximity * 0.12, 0, 0.9);
-  const edgeBloom = 0.6 + edgeProximity * 2.2 + cornerProximity * 1.2;
-  const cornerBloom = 1.5 + cornerProximity * 3.4;
-  const cornerBlur = 0.03 + cornerProximity * 0.14;
+  const hotCornerAlpha = clamp(0.24 + cornerProximity * 0.84 + edgeProximity * 0.08, 0, 1);
+  const idleCornerAlpha = clamp(cornerProximity * 0.03, 0, 0.05);
+  const cornerAlphas = [idleCornerAlpha, idleCornerAlpha, idleCornerAlpha, idleCornerAlpha];
+  cornerAlphas[activeCorner] = hotCornerAlpha;
 
-  card.style.setProperty('--pointer-x', (rawX - 0.5).toFixed(3));
-  card.style.setProperty('--pointer-y', (rawY - 0.5).toFixed(3));
-  card.style.setProperty('--edge-alpha', edgeAlpha.toFixed(3));
-  card.style.setProperty('--corner-alpha', cornerAlpha.toFixed(3));
+  const dimEdgeAlpha = clamp(0.008 + edgeProximity * 0.06, 0, 0.09);
+  const hotEdgeAlpha = clamp(0.22 + cornerProximity * 0.78 + edgeProximity * 0.12, 0, 1);
+  const edgeAlphas = [dimEdgeAlpha * 0.45, dimEdgeAlpha * 0.45, dimEdgeAlpha * 0.45, dimEdgeAlpha * 0.45];
+  const [edgeA, edgeB] = CORNER_TO_EDGE_INDEXES[activeCorner];
+  edgeAlphas[edgeA] = hotEdgeAlpha;
+  edgeAlphas[edgeB] = hotEdgeAlpha;
+
+  const auraAlpha = clamp(0.006 + cornerProximity * 0.16 + edgeProximity * 0.04 - centerProximity * 0.05, 0, 0.19);
+  const edgeBright = clamp(0.16 + hotEdgeAlpha * 0.74, 0, 1);
+  const edgeBloom = 0.8 + cornerProximity * 2.1;
+  const edgeBeamAlpha = clamp(0.12 + hotEdgeAlpha * 0.84, 0, 1);
+  const cornerBloom = 2.2 + cornerProximity * 4.2;
+  const cornerBlur = 0.02 + cornerProximity * 0.06;
+
+  card.style.setProperty('--pointer-x', (x - 0.5).toFixed(3));
+  card.style.setProperty('--pointer-y', (y - 0.5).toFixed(3));
+  card.style.setProperty('--beam-x', (x * 100).toFixed(2));
+  card.style.setProperty('--beam-y', (y * 100).toFixed(2));
+  CORNER_ALPHA_VARS.forEach((name, index) => {
+    card.style.setProperty(name, cornerAlphas[index].toFixed(3));
+  });
+  EDGE_ALPHA_VARS.forEach((name, index) => {
+    card.style.setProperty(name, edgeAlphas[index].toFixed(3));
+  });
   card.style.setProperty('--aura-alpha', auraAlpha.toFixed(3));
   card.style.setProperty('--edge-bright', edgeBright.toFixed(3));
+  card.style.setProperty('--edge-beam-alpha', edgeBeamAlpha.toFixed(3));
   card.style.setProperty('--edge-bloom', `${edgeBloom.toFixed(2)}px`);
   card.style.setProperty('--corner-bloom', `${cornerBloom.toFixed(2)}px`);
   card.style.setProperty('--corner-blur', `${cornerBlur.toFixed(2)}px`);
@@ -263,10 +310,17 @@ function applyCardLighting(card: HTMLElement, clientX: number, clientY: number) 
 function resetCardLighting(card: HTMLElement) {
   card.style.setProperty('--pointer-x', '0');
   card.style.setProperty('--pointer-y', '0');
-  card.style.setProperty('--edge-alpha', '0');
-  card.style.setProperty('--corner-alpha', '0');
+  card.style.setProperty('--beam-x', '50');
+  card.style.setProperty('--beam-y', '50');
+  CORNER_ALPHA_VARS.forEach((name) => {
+    card.style.setProperty(name, '0');
+  });
+  EDGE_ALPHA_VARS.forEach((name) => {
+    card.style.setProperty(name, '0');
+  });
   card.style.setProperty('--aura-alpha', '0');
   card.style.setProperty('--edge-bright', '0');
+  card.style.setProperty('--edge-beam-alpha', '0');
   card.style.setProperty('--edge-bloom', '0px');
   card.style.setProperty('--corner-bloom', '0px');
   card.style.setProperty('--corner-blur', '0px');
@@ -384,7 +438,7 @@ export default function ToolkitsPage() {
       const distance = Math.hypot(dx, dy);
 
       // Keep neighboring cards reactive so the conduit glow also responds in gutter space.
-      if (distance <= 42) {
+      if (distance <= 34) {
         applyCardLighting(card, clientX, clientY);
       } else {
         resetCardLighting(card);
@@ -541,10 +595,19 @@ export default function ToolkitsPage() {
                       aspectRatio: '1 / 1',
                       '--pointer-x': '0',
                       '--pointer-y': '0',
-                      '--edge-alpha': '0',
-                      '--corner-alpha': '0',
+                      '--beam-x': '50',
+                      '--beam-y': '50',
+                      '--corner-tl-alpha': '0',
+                      '--corner-tr-alpha': '0',
+                      '--corner-bl-alpha': '0',
+                      '--corner-br-alpha': '0',
+                      '--edge-top-alpha': '0',
+                      '--edge-right-alpha': '0',
+                      '--edge-bottom-alpha': '0',
+                      '--edge-left-alpha': '0',
                       '--aura-alpha': '0',
                       '--edge-bright': '0',
+                      '--edge-beam-alpha': '0',
                       '--edge-bloom': '0px',
                       '--corner-bloom': '0px',
                       '--corner-blur': '0px',
@@ -557,8 +620,8 @@ export default function ToolkitsPage() {
                         className="pointer-events-none absolute inset-[1px] z-[1] rounded-[11px] transition-[opacity,filter] duration-300 ease-out"
                         style={{
                           background: toolkit.auraGradient,
-                          opacity: 'calc(0.01 + var(--aura-alpha, 0) * 0.22)',
-                          filter: 'saturate(1.08) brightness(1.02)',
+                          opacity: 'calc(0.004 + var(--aura-alpha, 0) * 0.16)',
+                          filter: 'saturate(1.05) brightness(0.98)',
                           mixBlendMode: 'screen',
                         }}
                       />
@@ -566,11 +629,11 @@ export default function ToolkitsPage() {
                       <div
                         className="pointer-events-none absolute inset-0 z-[1] grid place-items-center will-change-transform"
                         style={{
-                          filter: "url('#toolkit-blur') saturate(3.8) brightness(1.15)",
-                          translate: 'calc(var(--pointer-x, 0) * 30cqi) calc(var(--pointer-y, 0) * 30cqh)',
-                          scale: '2.45',
-                          opacity: 'calc(0.015 + var(--aura-alpha, 0) * 0.12)',
-                          transition: 'opacity 300ms ease-out, translate 180ms ease-out',
+                          filter: "url('#toolkit-blur') saturate(3.1) brightness(1.07)",
+                          translate: 'calc(var(--pointer-x, 0) * 26cqi) calc(var(--pointer-y, 0) * 26cqh)',
+                          scale: '2.35',
+                          opacity: 'calc(0.006 + var(--aura-alpha, 0) * 0.08)',
+                          transition: 'opacity 300ms ease-out, translate 160ms ease-out',
                         }}
                       >
                         <img alt="" className="h-16 w-16" draggable={false} src={toolkit.logoUrl} />
@@ -603,23 +666,48 @@ export default function ToolkitsPage() {
 
                     <div
                       className="pointer-events-none absolute inset-0 z-[3] rounded-xl"
-                      style={{
-                        background: toolkit.edgeGradient,
-                        opacity: 'calc(0.015 + var(--edge-alpha, 0) * 0.52)',
-                        padding: '1px',
-                        filter:
-                          'saturate(calc(0.9 + var(--edge-bright, 0) * 0.5)) brightness(calc(0.74 + var(--edge-bright, 0) * 0.32)) drop-shadow(0 0 var(--edge-bloom, 0px) rgba(255,255,255,0.08))',
-                        transition: 'opacity 180ms ease-out, filter 220ms ease-out',
-                        maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)',
-                        maskOrigin: 'border-box, padding-box',
-                        maskClip: 'border-box, padding-box',
-                        maskComposite: 'exclude',
-                        WebkitMaskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)',
-                        WebkitMaskOrigin: 'border-box, padding-box',
-                        WebkitMaskClip: 'border-box, padding-box',
-                        WebkitMaskComposite: 'xor',
-                      }}
-                    />
+                    >
+                      <div
+                        className="absolute left-[1px] right-[1px] top-[1px] h-px"
+                        style={{
+                          opacity: 'calc(var(--edge-top-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
+                          backgroundImage: `linear-gradient(90deg, ${withAlpha(topLeftColor, 0.34)} 0%, ${withAlpha(topRightColor, 0.34)} 100%), radial-gradient(42% 360% at calc(var(--beam-x, 50) * 1%) 50%, ${withAlpha(topLeftColor, 0.95)} 0%, ${withAlpha(topRightColor, 0.95)} 32%, ${withAlpha(topRightColor, 0)} 72%)`,
+                          backgroundRepeat: 'no-repeat',
+                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          transition: 'opacity 140ms ease-out, filter 180ms ease-out',
+                        }}
+                      />
+                      <div
+                        className="absolute bottom-[1px] left-[1px] right-[1px] h-px"
+                        style={{
+                          opacity: 'calc(var(--edge-bottom-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
+                          backgroundImage: `linear-gradient(90deg, ${withAlpha(bottomLeftColor, 0.34)} 0%, ${withAlpha(bottomRightColor, 0.34)} 100%), radial-gradient(42% 360% at calc(var(--beam-x, 50) * 1%) 50%, ${withAlpha(bottomLeftColor, 0.95)} 0%, ${withAlpha(bottomRightColor, 0.95)} 32%, ${withAlpha(bottomRightColor, 0)} 72%)`,
+                          backgroundRepeat: 'no-repeat',
+                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          transition: 'opacity 140ms ease-out, filter 180ms ease-out',
+                        }}
+                      />
+                      <div
+                        className="absolute bottom-[1px] left-[1px] top-[1px] w-px"
+                        style={{
+                          opacity: 'calc(var(--edge-left-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
+                          backgroundImage: `linear-gradient(180deg, ${withAlpha(topLeftColor, 0.34)} 0%, ${withAlpha(bottomLeftColor, 0.34)} 100%), radial-gradient(360% 42% at 50% calc(var(--beam-y, 50) * 1%), ${withAlpha(topLeftColor, 0.95)} 0%, ${withAlpha(bottomLeftColor, 0.95)} 32%, ${withAlpha(bottomLeftColor, 0)} 72%)`,
+                          backgroundRepeat: 'no-repeat',
+                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          transition: 'opacity 140ms ease-out, filter 180ms ease-out',
+                        }}
+                      />
+                      <div
+                        className="absolute bottom-[1px] right-[1px] top-[1px] w-px"
+                        style={{
+                          opacity: 'calc(var(--edge-right-alpha, 0) * (0.66 + var(--edge-beam-alpha, 0) * 0.34))',
+                          backgroundImage: `linear-gradient(180deg, ${withAlpha(topRightColor, 0.34)} 0%, ${withAlpha(bottomRightColor, 0.34)} 100%), radial-gradient(360% 42% at 50% calc(var(--beam-y, 50) * 1%), ${withAlpha(topRightColor, 0.95)} 0%, ${withAlpha(bottomRightColor, 0.95)} 32%, ${withAlpha(bottomRightColor, 0)} 72%)`,
+                          backgroundRepeat: 'no-repeat',
+                          filter: 'saturate(calc(1 + var(--edge-bright, 0) * 0.72)) brightness(calc(0.86 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 calc(var(--edge-bloom, 0px) * 0.72) rgba(255,255,255,0.08))',
+                          transition: 'opacity 140ms ease-out, filter 180ms ease-out',
+                        }}
+                      />
+                    </div>
 
                     <div className="pointer-events-none absolute inset-0 z-[4] rounded-xl">
                       <div
@@ -627,11 +715,11 @@ export default function ToolkitsPage() {
                         style={{
                           backgroundImage: `linear-gradient(90deg, ${withAlpha(topLeftColor, 0.98)} 0%, ${withAlpha(topLeftColor, 0.98)} 42%, ${withAlpha(topLeftColor, 0)} 100%), linear-gradient(180deg, ${withAlpha(topLeftColor, 0.98)} 0%, ${withAlpha(topLeftColor, 0.98)} 42%, ${withAlpha(topLeftColor, 0)} 100%)`,
                           backgroundRepeat: 'no-repeat',
-                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'top left, top left',
-                          opacity: 'var(--corner-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topLeftColor, 0.64)})`,
-                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                          opacity: 'var(--corner-tl-alpha, 0)',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topLeftColor, 0.78)})`,
+                          transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
                       <div
@@ -639,11 +727,11 @@ export default function ToolkitsPage() {
                         style={{
                           backgroundImage: `linear-gradient(270deg, ${withAlpha(topRightColor, 0.98)} 0%, ${withAlpha(topRightColor, 0.98)} 42%, ${withAlpha(topRightColor, 0)} 100%), linear-gradient(180deg, ${withAlpha(topRightColor, 0.98)} 0%, ${withAlpha(topRightColor, 0.98)} 42%, ${withAlpha(topRightColor, 0)} 100%)`,
                           backgroundRepeat: 'no-repeat',
-                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'top right, top right',
-                          opacity: 'var(--corner-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topRightColor, 0.64)})`,
-                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                          opacity: 'var(--corner-tr-alpha, 0)',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topRightColor, 0.78)})`,
+                          transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
                       <div
@@ -651,11 +739,11 @@ export default function ToolkitsPage() {
                         style={{
                           backgroundImage: `linear-gradient(90deg, ${withAlpha(bottomLeftColor, 0.98)} 0%, ${withAlpha(bottomLeftColor, 0.98)} 42%, ${withAlpha(bottomLeftColor, 0)} 100%), linear-gradient(0deg, ${withAlpha(bottomLeftColor, 0.98)} 0%, ${withAlpha(bottomLeftColor, 0.98)} 42%, ${withAlpha(bottomLeftColor, 0)} 100%)`,
                           backgroundRepeat: 'no-repeat',
-                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'bottom left, bottom left',
-                          opacity: 'var(--corner-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomLeftColor, 0.64)})`,
-                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                          opacity: 'var(--corner-bl-alpha, 0)',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomLeftColor, 0.78)})`,
+                          transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
                       <div
@@ -663,11 +751,11 @@ export default function ToolkitsPage() {
                         style={{
                           backgroundImage: `linear-gradient(270deg, ${withAlpha(bottomRightColor, 0.98)} 0%, ${withAlpha(bottomRightColor, 0.98)} 42%, ${withAlpha(bottomRightColor, 0)} 100%), linear-gradient(0deg, ${withAlpha(bottomRightColor, 0.98)} 0%, ${withAlpha(bottomRightColor, 0.98)} 42%, ${withAlpha(bottomRightColor, 0)} 100%)`,
                           backgroundRepeat: 'no-repeat',
-                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundSize: '100% 1px, 1px 100%',
                           backgroundPosition: 'bottom right, bottom right',
-                          opacity: 'var(--corner-alpha, 0)',
-                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomRightColor, 0.64)})`,
-                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                          opacity: 'var(--corner-br-alpha, 0)',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomRightColor, 0.78)})`,
+                          transition: 'opacity 90ms cubic-bezier(0.2, 0.85, 0.2, 1), filter 120ms cubic-bezier(0.2, 0.85, 0.2, 1)',
                         }}
                       />
                     </div>
