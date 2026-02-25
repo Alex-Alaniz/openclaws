@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaws.me - Your AI Agent. Deployed in 60 Seconds.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Geist Sans', sans-serif;
+            background-color: #F9FAFB;
+        }
+        .geist-sans {
+            font-family: 'Geist Sans', sans-serif;
+        }
+        .hero-gradient-orb-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .hero-gradient-orb {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(100px);
+            opacity: 0.3;
+        }
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background-color: #8B5CF6; /* purple */
+            top: -100px;
+            left: -150px;
+            animation: pulse-orb 10s infinite alternate;
+        }
+        .orb-2 {
+            width: 350px;
+            height: 350px;
+            background-color: #22D3EE; /* cyan */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse-orb 12s infinite alternate-reverse;
+        }
+        .orb-3 {
+            width: 300px;
+            height: 300px;
+            background-color: #EC4899; /* pink */
+            bottom: -120px;
+            right: -100px;
+            animation: pulse-orb 8s infinite alternate;
+        }
+        @keyframes pulse-orb {
+            0% { transform: scale(0.9); }
+            100% { transform: scale(1.1); }
+        }
+        .testimonial-grid {
+            column-count: 1;
+        }
+        @media (min-width: 768px) {
+            .testimonial-grid {
+                column-count: 2;
+            }
+        }
+        @media (min-width: 1024px) {
+            .testimonial-grid {
+                column-count: 3;
+            }
+        }
+        .testimonial-card {
+            break-inside: avoid-column;
+            margin-bottom: 1.5rem;
+        }
+        .pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            border: 1px dashed #0A0A0A;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            user-select: none;
+        }
+        @keyframes marquee-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        @keyframes marquee-right {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
+        }
+        .animate-marquee-left {
+            animation: marquee-left 35s linear infinite;
+        }
+        .animate-marquee-right {
+            animation: marquee-right 35s linear infinite;
+        }
+        .signup-model-card {
+            --signup-accent: #8B5CF6;
+            border-left: 4px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .signup-model-card-purple {
+            --signup-accent: #8B5CF6;
+        }
+        .signup-model-card-green {
+            --signup-accent: #16A34A;
+        }
+        .signup-model-card-blue {
+            --signup-accent: #2563EB;
+        }
+        .signup-model-peer:checked + .signup-model-card {
+            border-left-color: var(--signup-accent);
+            box-shadow: 0 10px 18px -14px rgba(17, 24, 39, 0.45);
+        }
+        .signup-model-peer:checked + .signup-model-card.signup-model-card-purple {
+            background-color: #F5F3FF;
+        }
+        .signup-model-peer:checked + .signup-model-card.signup-model-card-green {
+            background-color: #F0FDF4;
+        }
+        .signup-model-peer:checked + .signup-model-card.signup-model-card-blue {
+            background-color: #EFF6FF;
+        }
+        .signup-model-peer:focus-visible + .signup-model-card,
+        .signup-channel-peer:focus-visible + .signup-channel-btn {
+            outline: 2px solid #111827;
+            outline-offset: 2px;
+        }
+        .signup-radio-indicator {
+            width: 1.125rem;
+            height: 1.125rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFFFFF;
+            flex-shrink: 0;
+            transition: border-color 0.2s ease;
+        }
+        .signup-radio-indicator-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 9999px;
+            transform: scale(0);
+            transition: transform 0.2s ease;
+        }
+        .signup-model-peer:checked + .signup-model-card .signup-radio-indicator {
+            border-color: var(--signup-accent);
+        }
+        .signup-model-peer:checked + .signup-model-card .signup-radio-indicator-dot {
+            transform: scale(1);
+            background-color: var(--signup-accent);
+        }
+        .signup-channel-btn {
+            transition: all 0.2s ease;
+        }
+        .signup-channel-peer:checked + .signup-channel-btn {
+            border-color: #111827;
+            background-color: #F9FAFB;
+            color: #111827;
+            box-shadow: 0 8px 14px -12px rgba(17, 24, 39, 0.7);
+        }
+        .integration-card {
+            --pointer-x: 50%;
+            --pointer-y: 50%;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        .integration-card::before {
+            content: "";
+            position: absolute;
+            inset: -35%;
+            background: radial-gradient(
+                circle at var(--pointer-x) var(--pointer-y),
+                rgba(239, 68, 68, 0.95) 0%,
+                rgba(251, 191, 36, 0.85) 24%,
+                rgba(34, 197, 94, 0.8) 44%,
+                rgba(59, 130, 246, 0.82) 66%,
+                rgba(168, 85, 247, 0.9) 85%,
+                rgba(236, 72, 153, 0.85) 100%
+            );
+            opacity: 0.25;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+            pointer-events: none;
+            filter: blur(18px);
+        }
+        .integration-card:hover::before {
+            opacity: 0.5;
+        }
+        .integration-card-content {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="geist-sans text-gray-800">
+
+    <!-- 1. DARK HERO -->
+    <header class="relative bg-[#0A0A0A] text-white overflow-hidden">
+        <div class="hero-gradient-orb-container" aria-hidden="true">
+            <div class="hero-gradient-orb orb-1"></div>
+            <div class="hero-gradient-orb orb-2"></div>
+            <div class="hero-gradient-orb orb-3"></div>
+        </div>
+        <div class="relative z-10 max-w-5xl mx-auto text-center px-6 py-28 md:py-40">
+            <h1 class="text-4xl md:text-6xl font-bold tracking-tight mb-6 text-white">
+                Deploy OpenClaw
+                <span class="block text-gray-400">In Under 1 Minute</span>
+            </h1>
+            <p class="text-base md:text-lg text-white max-w-3xl mx-auto mb-8">
+                Your own 24/7 AI assistant on Telegram, Discord, or WhatsApp. Pick a model, choose a channel, and deploy. No server setup, no code, no configuration.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 md:gap-4 mb-8 text-white">
+                <span class="hidden sm:inline text-xs uppercase tracking-wider text-gray-400">Powered by</span>
+                <div class="flex items-center gap-2">
+                    <img src="./logos/powered/claude.svg" alt="Claude" class="w-[18px] h-[18px]">
+                    <span class="hidden sm:inline text-sm">Claude</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <img src="./logos/powered/chatgpt.svg" alt="ChatGPT" class="w-[18px] h-[18px]">
+                    <span class="hidden sm:inline text-sm">ChatGPT</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <img src="./logos/powered/gemini.png" alt="Gemini" class="w-[18px] h-[18px]">
+                    <span class="hidden sm:inline text-sm">Gemini</span>
+                </div>
+                <span class="hidden sm:inline text-gray-500">|</span>
+                <span class="hidden sm:inline text-xs uppercase tracking-wider text-gray-400">Available on</span>
+                <div class="flex items-center gap-2">
+                    <img src="./logos/channels/telegram.png" alt="Telegram" class="w-[18px] h-[18px]">
+                    <span class="hidden sm:inline text-sm">Telegram</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <img src="./logos/channels/discord.png" alt="Discord" class="w-[18px] h-[18px]">
+                    <span class="hidden sm:inline text-sm">Discord</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <img src="./logos/channels/whatsapp.png" alt="WhatsApp" class="w-[18px] h-[18px]">
+                    <span class="hidden sm:inline text-sm">WhatsApp</span>
+                </div>
+            </div>
+            <a href="#" class="inline-flex items-center gap-2 bg-[#DC2626] text-white font-semibold px-8 py-3 rounded-md hover:bg-red-700 transition-colors">
+                <span>Get Started</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
+            <p class="text-gray-300 mt-6 text-sm">
+                Set up in under a minute. Cancel anytime.
+            </p>
+        </div>
+    </header>
+
+    <main>
+        <!-- INLINE SIGNUP -->
+        <section class="bg-white py-16 sm:py-20 border-b border-gray-200">
+            <div class="max-w-6xl mx-auto px-6">
+                <div class="grid lg:grid-cols-2 gap-8 lg:gap-10">
+                    <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+                        <div class="mb-8">
+                            <h2 class="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Choose Your Model</h2>
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="text-xs uppercase tracking-wider text-gray-400">Powered by</span>
+                                <img src="./logos/powered/claude.svg" alt="Claude" class="w-[18px] h-[18px]">
+                                <img src="./logos/powered/chatgpt.svg" alt="ChatGPT" class="w-[18px] h-[18px]">
+                                <img src="./logos/powered/gemini.png" alt="Gemini" class="w-[18px] h-[18px]">
+                            </div>
+                            <div class="space-y-3">
+                                <label class="block cursor-pointer">
+                                    <input type="radio" name="model" class="signup-model-peer sr-only" checked>
+                                    <div class="signup-model-card signup-model-card-purple bg-white border border-gray-200 rounded-xl p-4">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p class="font-semibold text-gray-900">Claude Opus 4.5</p>
+                                                <p class="text-sm text-gray-500 mt-1">Best for deep reasoning and long context tasks.</p>
+                                            </div>
+                                            <span class="signup-radio-indicator" aria-hidden="true">
+                                                <span class="signup-radio-indicator-dot"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </label>
+                                <label class="block cursor-pointer">
+                                    <input type="radio" name="model" class="signup-model-peer sr-only">
+                                    <div class="signup-model-card signup-model-card-green bg-white border border-gray-200 rounded-xl p-4">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p class="font-semibold text-gray-900">GPT-4o</p>
+                                                <p class="text-sm text-gray-500 mt-1">Great all-around speed and multimodal performance.</p>
+                                            </div>
+                                            <span class="signup-radio-indicator" aria-hidden="true">
+                                                <span class="signup-radio-indicator-dot"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </label>
+                                <label class="block cursor-pointer">
+                                    <input type="radio" name="model" class="signup-model-peer sr-only">
+                                    <div class="signup-model-card signup-model-card-blue bg-white border border-gray-200 rounded-xl p-4">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p class="font-semibold text-gray-900">Gemini 2.5</p>
+                                                <p class="text-sm text-gray-500 mt-1">Optimized for research-heavy and coding workflows.</p>
+                                            </div>
+                                            <span class="signup-radio-indicator" aria-hidden="true">
+                                                <span class="signup-radio-indicator-dot"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Connect Your Channel</h3>
+                            <p class="text-xs uppercase tracking-wider text-gray-400 mb-4">Available on</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <label class="cursor-pointer block">
+                                    <input type="radio" name="channel" class="signup-channel-peer sr-only" checked>
+                                    <span class="signup-channel-btn flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm">
+                                        <img src="./logos/channels/telegram.png" alt="Telegram" class="w-[18px] h-[18px]">
+                                        Telegram
+                                    </span>
+                                </label>
+                                <label class="cursor-pointer block">
+                                    <input type="radio" name="channel" class="signup-channel-peer sr-only">
+                                    <span class="signup-channel-btn flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm">
+                                        <img src="./logos/channels/discord.png" alt="Discord" class="w-[18px] h-[18px]">
+                                        Discord
+                                    </span>
+                                </label>
+                                <label class="cursor-pointer block">
+                                    <input type="radio" name="channel" class="signup-channel-peer sr-only">
+                                    <span class="signup-channel-btn flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm">
+                                        <img src="./logos/channels/whatsapp.png" alt="WhatsApp" class="w-[18px] h-[18px]">
+                                        WhatsApp
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+                        <h2 class="text-2xl font-semibold text-gray-900 mb-6">Get Started</h2>
+                        <form class="space-y-4">
+                            <button type="button" class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                                Continue with Google
+                            </button>
+                            <div class="relative py-1">
+                                <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                                    <div class="w-full border-t border-gray-200"></div>
+                                </div>
+                                <div class="relative flex justify-center">
+                                    <span class="bg-white px-3 text-xs font-medium tracking-[0.2em] text-gray-400">OR</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="signup-email" class="sr-only">Email</label>
+                                <input id="signup-email" type="email" placeholder="Email" class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400" />
+                            </div>
+                            <div>
+                                <label for="signup-password" class="sr-only">Password</label>
+                                <input id="signup-password" type="password" placeholder="Password" class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400" />
+                            </div>
+                            <button type="submit" class="w-full bg-[#DC2626] text-white text-base font-semibold px-6 py-3.5 rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+                                Deploy My Agent
+                            </button>
+                        </form>
+                        <p class="text-sm text-gray-500 mt-5">
+                            Already have an account?
+                            <a href="#" class="text-gray-900 font-semibold hover:text-[#DC2626] transition-colors">Sign in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. LOGO BAR -->
+        <section class="border-t border-gray-200 select-none">
+            <div class="max-w-6xl mx-auto px-4 py-8 text-center">
+                <p class="text-xs uppercase tracking-wider text-gray-400/60 mb-5">Trusted by teams at</p>
+                <div class="flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
+                    <img src="./logos/trusted/google.svg" alt="Google" class="grayscale opacity-40 hover:grayscale-0 hover:opacity-70 transition-all duration-300" style="height:22px;">
+                    <img src="./logos/trusted/meta.svg" alt="Meta" class="grayscale opacity-40 hover:grayscale-0 hover:opacity-70 transition-all duration-300" style="height:20px;">
+                    <img src="./logos/trusted/openai.svg" alt="OpenAI" class="grayscale opacity-40 hover:grayscale-0 hover:opacity-70 transition-all duration-300" style="height:20px;">
+                    <img src="./logos/trusted/anthropic.svg" alt="Anthropic" class="grayscale opacity-40 hover:grayscale-0 hover:opacity-70 transition-all duration-300" style="height:16px;">
+                    <img src="./logos/trusted/stripe.svg" alt="Stripe" class="grayscale opacity-40 hover:grayscale-0 hover:opacity-70 transition-all duration-300" style="height:22px;">
+                    <img src="./logos/trusted/vercel.svg" alt="Vercel" class="grayscale opacity-40 hover:grayscale-0 hover:opacity-70 transition-all duration-300" style="height:18px;">
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. COMPARISON -->
+        <section class="bg-gray-50 py-20 sm:py-24">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="bg-white border border-gray-200 rounded-lg p-8">
+                        <h3 class="text-2xl font-semibold mb-6">Traditional Setup</h3>
+                        <ul class="space-y-4 text-gray-600">
+                            <li class="flex justify-between"><span>1. Rent a server</span> <span class="text-gray-400">10 min</span></li>
+                            <li class="flex justify-between"><span>2. Configure firewall</span> <span class="text-gray-400">15 min</span></li>
+                            <li class="flex justify-between"><span>3. SSH and install environment</span> <span class="text-gray-400">10 min</span></li>
+                            <li class="flex justify-between"><span>4. Manage .env files</span> <span class="text-gray-400">5 min</span></li>
+                            <li class="flex justify-between"><span>5. Clone repo and install</span> <span class="text-gray-400">10 min</span></li>
+                            <li class="flex justify-between"><span>6. Debug webhook issues</span> <span class="text-gray-400">10 min</span></li>
+                        </ul>
+                        <div class="border-t border-gray-200 my-6"></div>
+                        <p class="flex justify-between font-bold text-lg"><span>Total Time</span> <span>60 min</span></p>
+                    </div>
+                    <div class="text-center lg:text-left">
+                         <div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                             <h3 class="text-2xl font-semibold mb-4">OpenClaws</h3>
+                             <p class="text-7xl font-bold text-[#DC2626] mb-4">&lt;1 minute</p>
+                             <p class="text-gray-600 max-w-md mx-auto">
+                                 Connect your accounts, define your agent's mission, and deploy instantly. We handle the infrastructure, security, and scaling for you.
+                             </p>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. SECURITY SECTION -->
+        <section class="bg-[#0A0A0A] text-white py-20 sm:py-24">
+            <div class="max-w-7xl mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Stop giving your AI raw credentials.</h2>
+                <p class="text-gray-400 max-w-2xl mx-auto mb-12">Security isn't an afterthought. It's our foundation.</p>
+                <div class="grid md:grid-cols-3 gap-8 text-left">
+                    <div class="bg-white/5 p-6 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#DC2626] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        <h3 class="font-semibold text-xl mb-2">OAuth Only</h3>
+                        <p class="text-gray-400 text-sm">Connect your tools with secure, official integrations. Never paste a password or secret key again.</p>
+                    </div>
+                    <div class="bg-white/5 p-6 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#DC2626] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7l8 4" /></svg>
+                        <h3 class="font-semibold text-xl mb-2">Sandboxed Execution</h3>
+                        <p class="text-gray-400 text-sm">Every agent runs in its own isolated environment, preventing any access to your core data or other agents.</p>
+                    </div>
+                    <div class="bg-white/5 p-6 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#DC2626] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <h3 class="font-semibold text-xl mb-2">Zero Config</h3>
+                        <p class="text-gray-400 text-sm">No need to manage environment variables or API keys. Connect once, and we handle the rest securely.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4.5 INTEGRATIONS -->
+        <section class="bg-[#111111] text-white py-20 sm:py-24">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h2 class="text-3xl md:text-4xl font-bold mb-4">1000+ Integrations</h2>
+                        <p class="text-gray-400 text-lg mb-6">Connect to all of your favourite apps in a single click.</p>
+                    </div>
+                    <div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/gmail.svg" alt="Gmail" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Gmail</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/github.svg" alt="GitHub" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">GitHub</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/notion.svg" alt="Notion" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Notion</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/figma.svg" alt="Figma" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Figma</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/linear.svg" alt="Linear" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Linear</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/jira.svg" alt="Jira" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Jira</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/discord.svg" alt="Discord" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Discord</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/googledrive.svg" alt="Google Drive" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Google Drive</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/googlecalendar.svg" alt="Google Calendar" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Google Calendar</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/todoist.svg" alt="Todoist" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Todoist</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/asana.svg" alt="Asana" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Asana</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/trello.svg" alt="Trello" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Trello</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/stripe.svg" alt="Stripe" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Stripe</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/hubspot.svg" alt="HubSpot" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">HubSpot</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="integration-card aspect-square rounded-xl bg-[#1a1a1a] border border-white/10 p-4">
+                                <div class="integration-card-content h-full flex flex-col">
+                                    <div class="flex justify-end"><button class="text-xs px-2.5 py-1 rounded-md border border-white/30 text-white">Connect</button></div>
+                                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                                        <img src="./logos/integrations/airtable.svg" alt="Airtable" class="w-12 h-12 mb-3">
+                                        <p class="text-sm text-gray-200">Airtable</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-gray-500 text-sm mt-4 text-center">+ 985 more</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. FEATURES -->
+        <section class="bg-white py-20 sm:py-24">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center max-w-2xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">Everything you need, nothing you don't.</h2>
+                    <p class="text-gray-600 mb-12">A powerful, simple platform for building and deploying autonomous agents.</p>
+                </div>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-[#DC2626] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        <h3 class="font-semibold text-lg mb-1">Every Messaging App</h3>
+                        <p class="text-gray-600 text-sm">Deploy agents to Telegram, WhatsApp, Discord, Slack, and more with a single click.</p>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-[#DC2626] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        <h3 class="font-semibold text-lg mb-1">500+ Integrations</h3>
+                        <p class="text-gray-600 text-sm">Connect to any app or service your agent needs with our extensive library of secure connectors.</p>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-[#DC2626] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <h3 class="font-semibold text-lg mb-1">Mission Control Dashboard</h3>
+                        <p class="text-gray-600 text-sm">Monitor, manage, and debug all your agents from one central, intuitive interface.</p>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-[#DC2626] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                        <h3 class="font-semibold text-lg mb-1">Works While You Sleep</h3>
+                        <p class="text-gray-600 text-sm">Set your agents on their mission and trust them to execute 24/7, reliably and securely.</p>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-[#DC2626] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2V4a2 2 0 012-2h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17z" /></svg>
+                        <h3 class="font-semibold text-lg mb-1">Reverse Prompting Built-in</h3>
+                        <p class="text-gray-600 text-sm">Agents can ask for clarification or help, ensuring missions are never stuck or derailed.</p>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-[#DC2626] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        <h3 class="font-semibold text-lg mb-1">Multi-Model Support</h3>
+                        <p class="text-gray-600 text-sm">Choose the best model for the job. Swap between OpenAI, Anthropic, Google, and more.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. TESTIMONIALS -->
+        <section class="bg-gray-50 py-20 sm:py-24">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center max-w-2xl mx-auto mb-4">
+                    <span class="inline-flex items-center rounded-full bg-gray-200 text-gray-600 text-xs font-medium px-3 py-1 mb-3">Shoutouts</span>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-2">Loved by builders everywhere</h2>
+                    <p class="text-gray-500">See what people are saying about OpenClaw</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4 mt-12">
+                    <div class="space-y-4">
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“Setup OpenClaw yesterday. All I have to say is, wow. The fact that claw can just keep building upon itself just by talking to it in discord is crazy. The future is already here.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/jonahships_" alt="Jonah" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Jonah</p>
+                                    <p class="text-xs text-gray-500">@jonahships_</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“First time I have felt like I am living in the future since the launch of ChatGPT.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/davemorin" alt="Dave Morin" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Dave Morin</p>
+                                    <p class="text-xs text-gray-500">@davemorin</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“Very impressed how many hard things Claw gets right. Persistent memory, persona onboarding, comms integration, heartbeats. The end result is AWESOME.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/AryehDubois" alt="Aryeh Dubois" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Aryeh Dubois</p>
+                                    <p class="text-xs text-gray-500">@AryehDubois</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“It's running my company.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/therno" alt="Therno" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Therno</p>
+                                    <p class="text-xs text-gray-500">@therno</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“@openclaw feels like that kind of 'just had to glue all the parts together' leap forward. Incredible experience.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/markjaquith" alt="Mark Jaquith" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Mark Jaquith</p>
+                                    <p class="text-xs text-gray-500">@markjaquith</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“After years of AI hype, I thought nothing could faze me. Then I installed @openclaw. From nervous 'hi what can you do?' to full throttle - design, code review, taxes, PM, content pipelines... AI as teammate, not tool. The endgame of digital employees is here.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/lycfyi" alt="Lyc" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Lyc</p>
+                                    <p class="text-xs text-gray-500">@lycfyi</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“A smart model with eyes and hands at a desk with keyboard and mouse. You message it like a coworker and it does everything a person could do with that Mac mini.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/nathanclark_" alt="Nathan Clark" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Nathan Clark</p>
+                                    <p class="text-xs text-gray-500">@nathanclark_</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“Yeah this was 1,000% worth it. Autonomously running tests on my app and capturing errors through a sentry webhook then resolving them and opening PRs... The future is here.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/nateliason" alt="Nat Eliason" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Nat Eliason</p>
+                                    <p class="text-xs text-gray-500">@nateliason</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“Your context and skills live on YOUR computer, not a walled garden. It's open source. Growing community building skills. 'Personal AI assistant' undersells it, it's a company assistant, family assistant, team tool. Proactive AF.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/danpeguine" alt="Dan Peguine" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Dan Peguine</p>
+                                    <p class="text-xs text-gray-500">@danpeguine</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“OpenClaw is the first 'software' in ages for which I constantly check for new releases on GitHub. It's hard to put into words. It's a special project.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/cnakazawa" alt="Christoph Nakazawa" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Christoph Nakazawa</p>
+                                    <p class="text-xs text-gray-500">@cnakazawa</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“When you experience @openclaw it gives the same kick as when we first saw the power of ChatGPT, DeepSeek, and Claude Code. A fundamental shift is happening.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/abhikatiyar_" alt="Abhi Katiyar" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Abhi Katiyar</p>
+                                    <p class="text-xs text-gray-500">@abhikatiyar_</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“The most impactful piece of technology I have used since the smartphone.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/alexfinn" alt="Alex Finn" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Alex Finn</p>
+                                    <p class="text-xs text-gray-500">@alexfinn</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 p-6 rounded-lg">
+                            <p class="text-sm leading-relaxed mb-4 text-gray-700">“This is genuinely impressive. It just works.”</p>
+                            <div class="flex items-center gap-3">
+                                <img src="https://unavatar.io/x/levelsio" alt="Pieter Levels" class="w-8 h-8 rounded-full">
+                                <div>
+                                    <p class="font-medium text-sm">Pieter Levels</p>
+                                    <p class="text-xs text-gray-500">@levelsio</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 7. USE CASES - Animated Marquee -->
+        <section class="bg-white py-20 sm:py-24 overflow-hidden">
+            <div class="max-w-4xl mx-auto px-6 text-center mb-14">
+                <h2 class="text-3xl md:text-4xl font-bold mb-3">What can OpenClaws do for you?</h2>
+                <p class="text-lg text-gray-500">One assistant, thousands of use cases</p>
+            </div>
+            <div class="relative max-w-5xl mx-auto space-y-1">
+                <div class="relative overflow-hidden py-1.5">
+                    <div class="flex gap-3 w-max animate-marquee-left">
+                        <span class="pill">Translate in real time</span><span class="pill">Organize your inbox</span><span class="pill">Answer support tickets</span><span class="pill">Summarize long documents</span><span class="pill">Notify before a meeting</span><span class="pill">Auto-reply to messages</span><span class="pill">Draft follow-up emails</span>
+                        <span class="pill">Translate in real time</span><span class="pill">Organize your inbox</span><span class="pill">Answer support tickets</span><span class="pill">Summarize long documents</span><span class="pill">Notify before a meeting</span><span class="pill">Auto-reply to messages</span><span class="pill">Draft follow-up emails</span>
+                    </div>
+                </div>
+                <div class="relative overflow-hidden py-1.5">
+                    <div class="flex gap-3 w-max animate-marquee-right">
+                        <span class="pill">Schedule across time zones</span><span class="pill">Do your taxes</span><span class="pill">Track expenses and receipts</span><span class="pill">Compare insurance quotes</span><span class="pill">Manage subscriptions</span><span class="pill">Set smart reminders</span><span class="pill">Automate data entry</span>
+                        <span class="pill">Schedule across time zones</span><span class="pill">Do your taxes</span><span class="pill">Track expenses and receipts</span><span class="pill">Compare insurance quotes</span><span class="pill">Manage subscriptions</span><span class="pill">Set smart reminders</span><span class="pill">Automate data entry</span>
+                    </div>
+                </div>
+                <div class="relative overflow-hidden py-1.5">
+                    <div class="flex gap-3 w-max animate-marquee-left" style="animation-duration:40s">
+                        <span class="pill">Find discount codes</span><span class="pill">Price-drop alerts</span><span class="pill">Compare product specs</span><span class="pill">Negotiate deals</span><span class="pill">Run payroll calculations</span><span class="pill">Monitor competitor pricing</span><span class="pill">Track order shipments</span>
+                        <span class="pill">Find discount codes</span><span class="pill">Price-drop alerts</span><span class="pill">Compare product specs</span><span class="pill">Negotiate deals</span><span class="pill">Run payroll calculations</span><span class="pill">Monitor competitor pricing</span><span class="pill">Track order shipments</span>
+                    </div>
+                </div>
+                <div class="relative overflow-hidden py-1.5">
+                    <div class="flex gap-3 w-max animate-marquee-right" style="animation-duration:42s">
+                        <span class="pill">Generate invoices</span><span class="pill">Create presentations from bullet points</span><span class="pill">Book travel and hotels</span><span class="pill">Find recipes from ingredients</span><span class="pill">Write meeting agendas</span><span class="pill">Summarize research papers</span>
+                        <span class="pill">Generate invoices</span><span class="pill">Create presentations from bullet points</span><span class="pill">Book travel and hotels</span><span class="pill">Find recipes from ingredients</span><span class="pill">Write meeting agendas</span><span class="pill">Summarize research papers</span>
+                    </div>
+                </div>
+                <div class="relative overflow-hidden py-1.5">
+                    <div class="flex gap-3 w-max animate-marquee-left" style="animation-duration:38s">
+                        <span class="pill">Screen cold outreach</span><span class="pill">Draft job descriptions</span><span class="pill">Run standup summaries</span><span class="pill">Track OKRs and KPIs</span><span class="pill">Monitor brand mentions</span><span class="pill">Generate weekly reports</span><span class="pill">Onboard new team members</span>
+                        <span class="pill">Screen cold outreach</span><span class="pill">Draft job descriptions</span><span class="pill">Run standup summaries</span><span class="pill">Track OKRs and KPIs</span><span class="pill">Monitor brand mentions</span><span class="pill">Generate weekly reports</span><span class="pill">Onboard new team members</span>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-sm text-gray-400 mt-8">PS: You can add as many use cases as you want via natural language</p>
+        </section>
+        
+        <!-- 8. PRICING -->
+        <section class="bg-gray-50 py-20 sm:py-24">
+            <div class="max-w-md mx-auto px-6">
+                <div class="bg-white border border-gray-200 rounded-lg p-8 text-center shadow-lg">
+                    <h3 class="text-2xl font-semibold mb-2">Pro Plan</h3>
+                    <p class="text-5xl font-bold mb-4">$29<span class="text-xl font-medium text-gray-500">/mo</span></p>
+                    <ul class="text-left space-y-3 text-gray-600 mb-8">
+                        <li class="flex items-center"><svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Unlimited Agent Deploys</li>
+                        <li class="flex items-center"><svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All Integrations</li>
+                        <li class="flex items-center"><svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Mission Control Dashboard</li>
+                        <li class="flex items-center"><svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Community Support</li>
+                    </ul>
+                    <a href="#" class="w-full inline-block bg-[#DC2626] text-white font-semibold px-8 py-3 rounded-md hover:bg-red-700 transition-colors">
+                        Start Your Free Trial
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. DARK CTA BANNER -->
+        <section class="bg-[#0A0A0A] text-white py-20 sm:py-24">
+            <div class="max-w-4xl mx-auto text-center px-6">
+                <h2 class="text-3xl md:text-4xl font-bold mb-6">Start Deploying Now</h2>
+                <a href="#" class="inline-block bg-[#DC2626] text-white font-semibold px-8 py-3 rounded-md hover:bg-red-700 transition-colors">
+                    Get Started in Seconds
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 10. FOOTER -->
+    <footer class="bg-white">
+        <div class="max-w-7xl mx-auto py-12 px-6 md:flex md:items-center md:justify-between">
+            <div class="flex justify-center space-x-6 md:order-2">
+                <a href="#" class="text-gray-400 hover:text-gray-500">Docs</a>
+                <a href="#" class="text-gray-400 hover:text-gray-500">GitHub</a>
+                <a href="#" class="text-gray-400 hover:text-gray-500">Twitter</a>
+            </div>
+            <div class="mt-8 md:mt-0 md:order-1">
+                <p class="text-center text-base text-gray-400">&copy; 2026 Bearified. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelectorAll('.integration-card').forEach((card) => {
+            card.addEventListener('mousemove', (event) => {
+                const rect = card.getBoundingClientRect();
+                const x = ((event.clientX - rect.left) / rect.width) * 100;
+                const y = ((event.clientY - rect.top) / rect.height) * 100;
+                card.style.setProperty('--pointer-x', `${x}%`);
+                card.style.setProperty('--pointer-y', `${y}%`);
+            });
+        });
+    </script>
+</body>
+</html>
