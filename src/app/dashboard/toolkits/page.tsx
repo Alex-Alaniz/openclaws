@@ -31,11 +31,11 @@ const TRUSTCLAW_PRIORITY_SLUGS = [
   'tavily', 'youtube', 'slackbot', 'canvas', 'bitbucket', 'googletasks', 'discord', 'figma', 'composio_search', 'reddit',
   'cal', 'wrike', 'exa', 'sentry', 'snowflake', 'hackernews', 'elevenlabs', 'microsoft_teams', 'asana', 'peopledatalabs',
   'shopify', 'linkedin', 'google_maps', 'one_drive', 'docusign', 'discordbot', 'salesforce', 'calendly', 'trello', 'apollo',
-  'semrush', 'mem0', 'neon', 'weathermap', 'posthog', 'clickup', 'brevo', 'stripe', 'klaviyo', 'browserbase_tool',
+  'semrush', 'mem0', 'neon', 'openweathermap', 'posthog', 'clickup', 'brevo', 'stripe', 'klaviyo', 'browserbase',
   'mailchimp', 'attio', 'googlemeet', 'text_to_pdf', 'zoho', 'fireflies', 'dropbox', 'shortcut', 'confluence', 'freshdesk',
   'borneo', 'mixpanel', 'coda', 'acculynx', 'ahrefs', 'affinity', 'amplitude', 'heygen', 'agencyzoom', 'googlebigquery',
   'microsoft_clarity', 'coinbase', 'monday', 'semanticscholar', 'sendgrid', 'junglescout', 'pipedrive', 'bamboohr', 'whatsapp',
-  'dynamics365', 'zendesk', 'googlephotos', 'lmnt', 'metaads', 'zenrows', 'googlesuper', 'browser_tool', 'yousearch',
+  'dynamics365', 'zendesk', 'googlephotos', 'lmnt', 'metaads', 'zenrows', 'googlesuper', 'browser_tool', 'youcom',
   'linkup', 'listennotes', 'typefully', 'bolna', 'rocketlane', 'zoom', 'onepage', 'entelligence', 'retellai', 'servicenow',
   'googleads', 'pagerduty', 'toneden', 'rafflys', 'finage', 'fomo', 'bannerbear', 'miro', 'share_point', 'mocean', 'formcarry',
   'appdrag', 'metatextai', 'launch_darkly', 'mailerlite', 'contentful', 'close', 'docmosis', 'ably', 'more_trees', 'netsuite',
@@ -189,11 +189,11 @@ function buildEdgeGradient(stops: readonly string[]) {
 
 function buildAuraGradient(corners: [string, string, string, string]) {
   return [
-    `radial-gradient(95% 95% at 0% 0%, ${withAlpha(corners[0], 0.55)} 0%, ${withAlpha(corners[0], 0.18)} 36%, ${withAlpha(corners[0], 0)} 74%)`,
-    `radial-gradient(95% 95% at 100% 0%, ${withAlpha(corners[1], 0.55)} 0%, ${withAlpha(corners[1], 0.18)} 36%, ${withAlpha(corners[1], 0)} 74%)`,
-    `radial-gradient(95% 95% at 0% 100%, ${withAlpha(corners[2], 0.55)} 0%, ${withAlpha(corners[2], 0.18)} 36%, ${withAlpha(corners[2], 0)} 74%)`,
-    `radial-gradient(95% 95% at 100% 100%, ${withAlpha(corners[3], 0.55)} 0%, ${withAlpha(corners[3], 0.18)} 36%, ${withAlpha(corners[3], 0)} 74%)`,
-    'radial-gradient(85% 85% at 50% 50%, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 72%)',
+    `radial-gradient(92% 92% at 0% 0%, ${withAlpha(corners[0], 0.16)} 0%, ${withAlpha(corners[0], 0.07)} 36%, ${withAlpha(corners[0], 0)} 74%)`,
+    `radial-gradient(92% 92% at 100% 0%, ${withAlpha(corners[1], 0.16)} 0%, ${withAlpha(corners[1], 0.07)} 36%, ${withAlpha(corners[1], 0)} 74%)`,
+    `radial-gradient(92% 92% at 0% 100%, ${withAlpha(corners[2], 0.16)} 0%, ${withAlpha(corners[2], 0.07)} 36%, ${withAlpha(corners[2], 0)} 74%)`,
+    `radial-gradient(92% 92% at 100% 100%, ${withAlpha(corners[3], 0.16)} 0%, ${withAlpha(corners[3], 0.07)} 36%, ${withAlpha(corners[3], 0)} 74%)`,
+    'radial-gradient(80% 80% at 50% 50%, rgba(255,255,255,0.01) 0%, rgba(255,255,255,0) 74%)',
   ].join(', ');
 }
 
@@ -222,8 +222,10 @@ function clamp(value: number, min = 0, max = 1) {
 
 function applyCardLighting(card: HTMLElement, clientX: number, clientY: number) {
   const rect = card.getBoundingClientRect();
-  const x = clamp((clientX - rect.left) / rect.width);
-  const y = clamp((clientY - rect.top) / rect.height);
+  const rawX = (clientX - rect.left) / rect.width;
+  const rawY = (clientY - rect.top) / rect.height;
+  const x = clamp(rawX);
+  const y = clamp(rawY);
 
   const edgeDistance = Math.min(x, 1 - x, y, 1 - y);
   const edgeProximity = clamp(1 - edgeDistance / 0.23);
@@ -239,16 +241,16 @@ function applyCardLighting(card: HTMLElement, clientX: number, clientY: number) 
   const centerDistance = Math.hypot(x - 0.5, y - 0.5) / 0.70710678118;
   const centerProximity = clamp(1 - centerDistance);
 
-  const edgeAlpha = clamp(0.34 + edgeProximity * 0.5 + cornerProximity * 0.16, 0, 1);
-  const cornerAlpha = clamp(0.22 + cornerProximity * 0.78, 0, 1);
-  const auraAlpha = clamp(0.14 + centerProximity * 0.3 + edgeProximity * 0.18, 0, 0.9);
-  const edgeBright = clamp(0.52 + edgeProximity * 0.72 + cornerProximity * 0.26, 0, 1.8);
-  const edgeBloom = 2 + edgeProximity * 8 + cornerProximity * 5;
-  const cornerBloom = 5 + cornerProximity * 8;
-  const cornerBlur = 0.7 + cornerProximity * 0.95;
+  const edgeAlpha = clamp(0.04 + edgeProximity * 0.34 + cornerProximity * 0.06, 0, 0.42);
+  const cornerAlpha = clamp(0.16 + cornerProximity * 0.9, 0, 1);
+  const auraAlpha = clamp(0.03 + centerProximity * 0.2 + edgeProximity * 0.06, 0, 0.32);
+  const edgeBright = clamp(0.2 + edgeProximity * 0.45 + cornerProximity * 0.12, 0, 0.9);
+  const edgeBloom = 0.6 + edgeProximity * 2.2 + cornerProximity * 1.2;
+  const cornerBloom = 1.5 + cornerProximity * 3.4;
+  const cornerBlur = 0.03 + cornerProximity * 0.14;
 
-  card.style.setProperty('--pointer-x', (x - 0.5).toFixed(3));
-  card.style.setProperty('--pointer-y', (y - 0.5).toFixed(3));
+  card.style.setProperty('--pointer-x', (rawX - 0.5).toFixed(3));
+  card.style.setProperty('--pointer-y', (rawY - 0.5).toFixed(3));
   card.style.setProperty('--edge-alpha', edgeAlpha.toFixed(3));
   card.style.setProperty('--corner-alpha', cornerAlpha.toFixed(3));
   card.style.setProperty('--aura-alpha', auraAlpha.toFixed(3));
@@ -267,7 +269,7 @@ function resetCardLighting(card: HTMLElement) {
   card.style.setProperty('--edge-bright', '0');
   card.style.setProperty('--edge-bloom', '0px');
   card.style.setProperty('--corner-bloom', '0px');
-  card.style.setProperty('--corner-blur', '0.2px');
+  card.style.setProperty('--corner-blur', '0px');
 }
 
 export default function ToolkitsPage() {
@@ -281,6 +283,9 @@ export default function ToolkitsPage() {
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const isAdvancingRef = useRef(false);
+  const cardRefs = useRef(new Map<string, HTMLElement>());
+  const pointerFrameRef = useRef<number | null>(null);
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
 
   const fetchToolkits = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (silent) {
@@ -371,6 +376,55 @@ export default function ToolkitsPage() {
     return () => observer.disconnect();
   }, [filtered.length, hasMore]);
 
+  const applySharedLighting = useCallback((clientX: number, clientY: number) => {
+    for (const card of cardRefs.current.values()) {
+      const rect = card.getBoundingClientRect();
+      const dx = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0;
+      const dy = clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0;
+      const distance = Math.hypot(dx, dy);
+
+      // Keep neighboring cards reactive so the conduit glow also responds in gutter space.
+      if (distance <= 42) {
+        applyCardLighting(card, clientX, clientY);
+      } else {
+        resetCardLighting(card);
+      }
+    }
+  }, []);
+
+  const flushSharedLighting = useCallback(() => {
+    pointerFrameRef.current = null;
+    const pointer = pointerRef.current;
+    if (!pointer) return;
+    applySharedLighting(pointer.x, pointer.y);
+  }, [applySharedLighting]);
+
+  const queueSharedLighting = useCallback((clientX: number, clientY: number) => {
+    pointerRef.current = { x: clientX, y: clientY };
+    if (pointerFrameRef.current !== null) return;
+    pointerFrameRef.current = window.requestAnimationFrame(flushSharedLighting);
+  }, [flushSharedLighting]);
+
+  const clearSharedLighting = useCallback(() => {
+    pointerRef.current = null;
+    if (pointerFrameRef.current !== null) {
+      window.cancelAnimationFrame(pointerFrameRef.current);
+      pointerFrameRef.current = null;
+    }
+    for (const card of cardRefs.current.values()) {
+      resetCardLighting(card);
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (pointerFrameRef.current !== null) {
+        window.cancelAnimationFrame(pointerFrameRef.current);
+      }
+    },
+    [],
+  );
+
   const handleConnect = useCallback(
     async (toolkitKey: string, appName: string) => {
       setPendingConnectKey(toolkitKey);
@@ -410,7 +464,7 @@ export default function ToolkitsPage() {
   return (
     <div className="h-full overflow-y-auto bg-[#0a0a0a] text-white">
       <svg className="hidden" aria-hidden="true">
-        <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="20" /></filter></defs>
+        <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="12" /></filter></defs>
       </svg>
       <div className="mx-auto w-full max-w-5xl space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between">
@@ -463,13 +517,24 @@ export default function ToolkitsPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+              onPointerMove={(event) => queueSharedLighting(event.clientX, event.clientY)}
+              onPointerLeave={clearSharedLighting}
+            >
               {visibleToolkits.map((toolkit) => {
                 const isConnecting = pendingConnectKey === toolkit.key;
                 const [topLeftColor, topRightColor, bottomLeftColor, bottomRightColor] = toolkit.cornerColors;
                 return (
                   <article
                     key={toolkit.key}
+                    ref={(node) => {
+                      if (node) {
+                        cardRefs.current.set(toolkit.key, node);
+                      } else {
+                        cardRefs.current.delete(toolkit.key);
+                      }
+                    }}
                     className="toolkit-card group relative cursor-pointer rounded-xl border border-white/[0.12] bg-[#161616] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-[border-color,transform] duration-200 ease-out hover:border-white/[0.2] active:translate-y-px active:scale-[0.99]"
                     style={{
                       containerType: 'size',
@@ -482,17 +547,8 @@ export default function ToolkitsPage() {
                       '--edge-bright': '0',
                       '--edge-bloom': '0px',
                       '--corner-bloom': '0px',
-                      '--corner-blur': '0.2px',
+                      '--corner-blur': '0px',
                     } as CSSProperties}
-                    onMouseEnter={(event) => {
-                      applyCardLighting(event.currentTarget, event.clientX, event.clientY);
-                    }}
-                    onMouseMove={(event) => {
-                      applyCardLighting(event.currentTarget, event.clientX, event.clientY);
-                    }}
-                    onMouseLeave={(event) => {
-                      resetCardLighting(event.currentTarget);
-                    }}
                   >
                     <div className="absolute inset-0 overflow-hidden rounded-xl [clip-path:inset(0_round_12px)]">
                       <div className="absolute inset-0 bg-[#1a1a1a]" />
@@ -501,8 +557,8 @@ export default function ToolkitsPage() {
                         className="pointer-events-none absolute inset-[1px] z-[1] rounded-[11px] transition-[opacity,filter] duration-300 ease-out"
                         style={{
                           background: toolkit.auraGradient,
-                          opacity: 'calc(0.02 + var(--aura-alpha, 0) * 0.98)',
-                          filter: 'saturate(1.26) brightness(1.1)',
+                          opacity: 'calc(0.01 + var(--aura-alpha, 0) * 0.22)',
+                          filter: 'saturate(1.08) brightness(1.02)',
                           mixBlendMode: 'screen',
                         }}
                       />
@@ -510,11 +566,11 @@ export default function ToolkitsPage() {
                       <div
                         className="pointer-events-none absolute inset-0 z-[1] grid place-items-center will-change-transform"
                         style={{
-                          filter: "url('#toolkit-blur') saturate(5) brightness(1.3)",
-                          translate: 'calc(var(--pointer-x, 0) * 42cqi) calc(var(--pointer-y, 0) * 42cqh)',
-                          scale: '3.4',
-                          opacity: 'calc(0.08 + var(--aura-alpha, 0) * 0.35)',
-                          transition: 'opacity 300ms ease-out',
+                          filter: "url('#toolkit-blur') saturate(3.8) brightness(1.15)",
+                          translate: 'calc(var(--pointer-x, 0) * 30cqi) calc(var(--pointer-y, 0) * 30cqh)',
+                          scale: '2.45',
+                          opacity: 'calc(0.015 + var(--aura-alpha, 0) * 0.12)',
+                          transition: 'opacity 300ms ease-out, translate 180ms ease-out',
                         }}
                       >
                         <img alt="" className="h-16 w-16" draggable={false} src={toolkit.logoUrl} />
@@ -549,11 +605,11 @@ export default function ToolkitsPage() {
                       className="pointer-events-none absolute inset-0 z-[3] rounded-xl"
                       style={{
                         background: toolkit.edgeGradient,
-                        opacity: 'calc(0.12 + var(--edge-alpha, 0) * 0.88)',
+                        opacity: 'calc(0.015 + var(--edge-alpha, 0) * 0.52)',
                         padding: '1px',
                         filter:
-                          'saturate(calc(1 + var(--edge-bright, 0) * 0.32)) brightness(calc(0.8 + var(--edge-bright, 0) * 0.42)) drop-shadow(0 0 var(--edge-bloom, 0px) rgba(255,255,255,0.12))',
-                        transition: 'opacity 180ms ease-out, filter 180ms ease-out',
+                          'saturate(calc(0.9 + var(--edge-bright, 0) * 0.5)) brightness(calc(0.74 + var(--edge-bright, 0) * 0.32)) drop-shadow(0 0 var(--edge-bloom, 0px) rgba(255,255,255,0.08))',
+                        transition: 'opacity 180ms ease-out, filter 220ms ease-out',
                         maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)',
                         maskOrigin: 'border-box, padding-box',
                         maskClip: 'border-box, padding-box',
@@ -567,47 +623,51 @@ export default function ToolkitsPage() {
 
                     <div className="pointer-events-none absolute inset-0 z-[4] rounded-xl">
                       <div
-                        className="absolute left-0 top-0 h-[17%] w-[17%] rounded-tl-xl"
+                        className="absolute left-0 top-0 h-[15%] w-[15%]"
                         style={{
-                          borderTop: `2px solid ${withAlpha(topLeftColor, 1)}`,
-                          borderLeft: `2px solid ${withAlpha(topLeftColor, 1)}`,
+                          backgroundImage: `linear-gradient(90deg, ${withAlpha(topLeftColor, 0.98)} 0%, ${withAlpha(topLeftColor, 0.98)} 42%, ${withAlpha(topLeftColor, 0)} 100%), linear-gradient(180deg, ${withAlpha(topLeftColor, 0.98)} 0%, ${withAlpha(topLeftColor, 0.98)} 42%, ${withAlpha(topLeftColor, 0)} 100%)`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundPosition: 'top left, top left',
                           opacity: 'var(--corner-alpha, 0)',
-                          filter: 'blur(var(--corner-blur, 0.2px))',
-                          boxShadow: `0 0 var(--corner-bloom, 0px) 3px ${withAlpha(topLeftColor, 0.72)}`,
-                          transition: 'opacity 150ms ease-out, box-shadow 150ms ease-out',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topLeftColor, 0.64)})`,
+                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                         }}
                       />
                       <div
-                        className="absolute right-0 top-0 h-[17%] w-[17%] rounded-tr-xl"
+                        className="absolute right-0 top-0 h-[15%] w-[15%]"
                         style={{
-                          borderTop: `2px solid ${withAlpha(topRightColor, 1)}`,
-                          borderRight: `2px solid ${withAlpha(topRightColor, 1)}`,
+                          backgroundImage: `linear-gradient(270deg, ${withAlpha(topRightColor, 0.98)} 0%, ${withAlpha(topRightColor, 0.98)} 42%, ${withAlpha(topRightColor, 0)} 100%), linear-gradient(180deg, ${withAlpha(topRightColor, 0.98)} 0%, ${withAlpha(topRightColor, 0.98)} 42%, ${withAlpha(topRightColor, 0)} 100%)`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundPosition: 'top right, top right',
                           opacity: 'var(--corner-alpha, 0)',
-                          filter: 'blur(var(--corner-blur, 0.2px))',
-                          boxShadow: `0 0 var(--corner-bloom, 0px) 3px ${withAlpha(topRightColor, 0.72)}`,
-                          transition: 'opacity 150ms ease-out, box-shadow 150ms ease-out',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(topRightColor, 0.64)})`,
+                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                         }}
                       />
                       <div
-                        className="absolute bottom-0 left-0 h-[17%] w-[17%] rounded-bl-xl"
+                        className="absolute bottom-0 left-0 h-[15%] w-[15%]"
                         style={{
-                          borderBottom: `2px solid ${withAlpha(bottomLeftColor, 1)}`,
-                          borderLeft: `2px solid ${withAlpha(bottomLeftColor, 1)}`,
+                          backgroundImage: `linear-gradient(90deg, ${withAlpha(bottomLeftColor, 0.98)} 0%, ${withAlpha(bottomLeftColor, 0.98)} 42%, ${withAlpha(bottomLeftColor, 0)} 100%), linear-gradient(0deg, ${withAlpha(bottomLeftColor, 0.98)} 0%, ${withAlpha(bottomLeftColor, 0.98)} 42%, ${withAlpha(bottomLeftColor, 0)} 100%)`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundPosition: 'bottom left, bottom left',
                           opacity: 'var(--corner-alpha, 0)',
-                          filter: 'blur(var(--corner-blur, 0.2px))',
-                          boxShadow: `0 0 var(--corner-bloom, 0px) 3px ${withAlpha(bottomLeftColor, 0.72)}`,
-                          transition: 'opacity 150ms ease-out, box-shadow 150ms ease-out',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomLeftColor, 0.64)})`,
+                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                         }}
                       />
                       <div
-                        className="absolute bottom-0 right-0 h-[17%] w-[17%] rounded-br-xl"
+                        className="absolute bottom-0 right-0 h-[15%] w-[15%]"
                         style={{
-                          borderBottom: `2px solid ${withAlpha(bottomRightColor, 1)}`,
-                          borderRight: `2px solid ${withAlpha(bottomRightColor, 1)}`,
+                          backgroundImage: `linear-gradient(270deg, ${withAlpha(bottomRightColor, 0.98)} 0%, ${withAlpha(bottomRightColor, 0.98)} 42%, ${withAlpha(bottomRightColor, 0)} 100%), linear-gradient(0deg, ${withAlpha(bottomRightColor, 0.98)} 0%, ${withAlpha(bottomRightColor, 0.98)} 42%, ${withAlpha(bottomRightColor, 0)} 100%)`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '100% 1.5px, 1.5px 100%',
+                          backgroundPosition: 'bottom right, bottom right',
                           opacity: 'var(--corner-alpha, 0)',
-                          filter: 'blur(var(--corner-blur, 0.2px))',
-                          boxShadow: `0 0 var(--corner-bloom, 0px) 3px ${withAlpha(bottomRightColor, 0.72)}`,
-                          transition: 'opacity 150ms ease-out, box-shadow 150ms ease-out',
+                          filter: `blur(var(--corner-blur, 0px)) drop-shadow(0 0 var(--corner-bloom, 0px) ${withAlpha(bottomRightColor, 0.64)})`,
+                          transition: 'opacity 110ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                         }}
                       />
                     </div>
