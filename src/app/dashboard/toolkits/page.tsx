@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type Tab = 'All' | 'Connected';
 type Status = 'connect' | 'connected' | 'active';
@@ -23,69 +23,39 @@ type ToolkitsApiResponse = {
   };
 };
 
-type Toolkit = {
-  key: string;
-  name: string;
-  slug: string;
-  logoUrl: string;
-  status: Status;
-  connectedAccountId: string | null;
-  borderGradient: string;
-};
-
 const INITIAL_BATCH_SIZE = 24;
 const LOAD_BATCH_SIZE = 12;
+const GLOW_COLORS = [
+  '#EA4335',
+  '#4285F4',
+  '#34A853',
+  '#FBBC05',
+  '#635BFF',
+  '#F24E1E',
+  '#5E6AD2',
+  '#5865F2',
+  '#3ECF8E',
+  '#0EA5E9',
+  '#14B8A6',
+  '#E11D48',
+  '#F97316',
+  '#8B5CF6',
+] as const;
 
-const COLOR_POOL = [
-  '#EA4335', '#4285F4', '#34A853', '#FBBC05', '#635BFF', '#F24E1E', '#5E6AD2', '#5865F2', '#3ECF8E', '#0EA5E9', '#14B8A6', '#E11D48', '#F97316', '#8B5CF6', '#0F172A', '#F59E0B', '#22C55E', '#06B6D4', '#2563EB', '#DC2626', '#A855F7', '#84CC16', '#F43F5E', '#10B981',
-];
+type ToolkitCard = ToolkitApiRecord & {
+  cornerGlow: string;
+};
 
-function hexToRgb(hex: string): [number, number, number] {
-  const normalized = hex.replace('#', '');
-  if (normalized.length === 3) {
-    const [r, g, b] = normalized.split('');
-    return [parseInt(`${r}${r}`, 16), parseInt(`${g}${g}`, 16), parseInt(`${b}${b}`, 16)];
-  }
-  if (normalized.length === 6) {
-    return [parseInt(normalized.slice(0, 2), 16), parseInt(normalized.slice(2, 4), 16), parseInt(normalized.slice(4, 6), 16)];
-  }
-  return [255, 255, 255];
-}
-
-function withAlpha(hex: string, alpha: number) {
-  const [r, g, b] = hexToRgb(hex);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function buildBorderGradient(index: number, primary: string, secondary: string) {
-  const mode = index % 4;
-  if (mode === 0) return `linear-gradient(${165 + (index % 24)}deg, ${withAlpha(primary, 0.97)}, ${withAlpha(secondary, 0.78)})`;
-  if (mode === 1) return `linear-gradient(${220 - (index % 34)}deg, ${withAlpha('#ffffff', 0.72)}, ${withAlpha(primary, 0.9)}, ${withAlpha(secondary, 0.68)})`;
-  if (mode === 2) return `conic-gradient(from var(--border-angle, ${125 + (index % 30)}deg), ${withAlpha(primary, 0.96)}, ${withAlpha(secondary, 0.9)}, ${withAlpha(primary, 0.62)}, ${withAlpha(secondary, 0.94)}, ${withAlpha(primary, 0.96)})`;
-  return `linear-gradient(${145 + (index % 20)}deg, ${withAlpha(primary, 0.94)}, ${withAlpha('#18181b', 0.84)}, ${withAlpha(secondary, 0.7)})`;
-}
-
-function toPaletteColor(seed: string, index: number) {
+function colorForToolkit(seed: string) {
   const hash = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return COLOR_POOL[(hash + index) % COLOR_POOL.length];
-}
-
-function decorateToolkits(records: ToolkitApiRecord[]): Toolkit[] {
-  return records.map((record, index) => {
-    const primary = toPaletteColor(record.key, index);
-    const secondary = COLOR_POOL[(index * 5 + 11) % COLOR_POOL.length];
-    return {
-      ...record,
-      borderGradient: buildBorderGradient(index, primary, secondary),
-    };
-  });
+  return GLOW_COLORS[hash % GLOW_COLORS.length];
 }
 
 export default function ToolkitsPage() {
   const [tab, setTab] = useState<Tab>('All');
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
-  const [toolkits, setToolkits] = useState<Toolkit[]>([]);
+  const [toolkits, setToolkits] = useState<ToolkitCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingConnectKey, setPendingConnectKey] = useState<string | null>(null);
@@ -113,7 +83,12 @@ export default function ToolkitsPage() {
         payload && 'toolkits' in payload && Array.isArray(payload.toolkits)
           ? payload.toolkits
           : [];
-      setToolkits(decorateToolkits(records));
+      setToolkits(
+        records.map((record) => ({
+          ...record,
+          cornerGlow: colorForToolkit(record.key),
+        })),
+      );
     } catch (fetchError) {
       const message = fetchError instanceof Error ? fetchError.message : 'Failed to fetch toolkits.';
       setError(message);
@@ -225,9 +200,9 @@ export default function ToolkitsPage() {
                 onClick={() => setTab(item)}
                 role="tab"
                 aria-selected={tab === item}
-                className={`h-[calc(100%-1px)] rounded-md border border-transparent px-3 py-1 text-sm font-medium transition-colors ${
+                className={`relative inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-sm font-medium transition-all ${
                   tab === item
-                    ? 'bg-[#111111] text-zinc-100'
+                    ? 'border-white/[0.15] bg-white/[0.045] text-zinc-100 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-100'
                 }`}
               >
@@ -245,7 +220,7 @@ export default function ToolkitsPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={`Search across ${toolkits.length}+ toolkits...`}
-              className="h-9 w-full rounded-md border border-white/[0.1] bg-transparent pl-9 pr-3 text-sm text-zinc-100 shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.2] focus:ring-1 focus:ring-white/[0.2]"
+              className="h-9 w-full rounded-md border border-white/[0.15] bg-white/[0.045] pl-9 pr-3 text-sm text-zinc-100 shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.22] focus:ring-1 focus:ring-white/[0.22]"
             />
           </div>
         </div>
@@ -268,13 +243,8 @@ export default function ToolkitsPage() {
                 return (
                   <article
                     key={toolkit.key}
-                    className="toolkit-card group relative cursor-pointer rounded-[14px] border-[2px] border-transparent bg-[#1a1a1a] outline outline-1 outline-white/10 transition-[translate,scale] duration-100 ease-[cubic-bezier(.645,.045,.355,1)] active:translate-y-px active:scale-[0.99]"
-                    style={
-                      {
-                        containerType: 'size',
-                        aspectRatio: '1 / 1',
-                      } as CSSProperties
-                    }
+                    className="toolkit-card group relative cursor-pointer rounded-xl border-[2px] border-transparent bg-[#1a1a1a] outline outline-1 outline-white/10 transition-[translate,scale] duration-100 ease-[cubic-bezier(.645,.045,.355,1)] active:translate-y-px active:scale-[0.99]"
+                    style={{ containerType: 'size', aspectRatio: '1 / 1' }}
                     onMouseMove={(event) => {
                       const rect = event.currentTarget.getBoundingClientRect();
                       const x = (event.clientX - rect.left) / rect.width;
@@ -287,7 +257,7 @@ export default function ToolkitsPage() {
                       event.currentTarget.style.removeProperty('--pointer-y');
                     }}
                   >
-                    <div className="absolute inset-0 overflow-hidden rounded-[14px] [clip-path:inset(0_round_12px)]">
+                    <div className="absolute inset-0 overflow-hidden rounded-xl [clip-path:inset(0_round_12px)]">
                       <div
                         className="pointer-events-none absolute inset-0 grid place-items-center will-change-transform"
                         style={{
@@ -301,41 +271,34 @@ export default function ToolkitsPage() {
                       </div>
 
                       <div className="relative z-[2] flex h-full flex-col items-center justify-center gap-1.5 p-4 pt-10">
-                        <div className="absolute right-3 top-3 z-[1]">
-                          {toolkit.status === 'connect' ? (
+                        {toolkit.status === 'connect' ? (
+                          <div className="absolute right-3 top-3 z-[1]">
                             <button
                               onClick={(event) => {
                                 event.stopPropagation();
                                 void handleConnect(toolkit.key, toolkit.key);
                               }}
-                              className="inline-flex h-7 items-center justify-center gap-1.5 rounded-md bg-white px-2.5 text-xs font-medium text-black transition-all duration-200 group-hover:scale-105 group-hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex items-center justify-center whitespace-nowrap font-medium disabled:pointer-events-none disabled:opacity-50 shrink-0 rounded-md bg-white text-black hover:bg-white/90 gap-1.5 h-7 px-2.5 text-xs transition-all duration-200 group-hover:scale-105 group-hover:shadow-md"
                               disabled={isConnecting}
                             >
                               {isConnecting ? 'Connecting...' : 'Connect'}
                             </button>
-                          ) : (
-                            <span
-                              className={`inline-flex h-7 items-center justify-center rounded-md border px-2.5 text-xs font-medium ${
-                                toolkit.status === 'active'
-                                  ? 'border-emerald-400/30 bg-emerald-500/20 text-emerald-100'
-                                  : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'
-                              }`}
-                            >
-                              {toolkit.status === 'active' ? 'Active' : 'Connected'}
-                            </span>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="absolute right-3 top-3 z-[1]">
+                            {toolkit.status === 'active' ? 'Active' : 'Connected'}
+                          </div>
+                        )}
 
-                        <img alt={`${toolkit.name} logo`} className="h-12 w-12 select-none transition-opacity duration-300 ease-in" draggable={false} src={toolkit.logoUrl} />
-                        <h3 className="select-none text-center text-sm font-semibold text-zinc-100">{toolkit.name}</h3>
+                        <img alt={`${toolkit.name} logo`} className="h-16 w-16 select-none" draggable={false} src={toolkit.logoUrl} />
+                        <h3 className="select-none text-sm font-semibold text-zinc-100">{toolkit.name}</h3>
                       </div>
                     </div>
 
                     <div
-                      className="pointer-events-none absolute inset-0 z-[3] rounded-[14px] [clip-path:inset(0_round_12px)]"
+                      className="pointer-events-none absolute inset-0 z-[3] rounded-xl [clip-path:inset(0_round_12px)]"
                       style={{
                         border: '2px solid transparent',
-                        background: toolkit.borderGradient,
                         backdropFilter: 'saturate(4.2) brightness(2.5) contrast(2.5)',
                         maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)',
                         maskOrigin: 'border-box, padding-box',
@@ -345,6 +308,20 @@ export default function ToolkitsPage() {
                         WebkitMaskOrigin: 'border-box, padding-box',
                         WebkitMaskClip: 'border-box, padding-box',
                         WebkitMaskComposite: 'xor',
+                      }}
+                    />
+
+                    <div
+                      className="pointer-events-none absolute inset-0 z-[4] rounded-xl opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                      style={{
+                        background: `
+                          radial-gradient(18px 18px at 0% 0%, ${toolkit.cornerGlow}, transparent 65%),
+                          radial-gradient(18px 18px at 100% 0%, ${toolkit.cornerGlow}, transparent 65%),
+                          radial-gradient(18px 18px at 0% 100%, ${toolkit.cornerGlow}, transparent 65%),
+                          radial-gradient(18px 18px at 100% 100%, ${toolkit.cornerGlow}, transparent 65%)
+                        `,
+                        filter: 'blur(0.4px) saturate(1.2)',
+                        mixBlendMode: 'screen',
                       }}
                     />
                   </article>

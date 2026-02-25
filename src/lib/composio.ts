@@ -14,6 +14,13 @@ type ToolkitStatusIndex = {
 };
 
 const MAX_CONNECTIONS_PAGE_SIZE = 200;
+const COMPOSIO_API_KEY_CANDIDATES = [
+  'COMPOSIO_API_KEY',
+  'COMPOSIO_MASTER_API_KEY',
+  'COMPOSIO_KEY',
+  'COMPOSIO_SECRET_KEY',
+] as const;
+
 let composioClient: Composio | null = null;
 
 function normalizeToken(value: string | null | undefined) {
@@ -70,11 +77,11 @@ function deriveStatus(connection: ConnectionItem): ToolkitConnectionState {
 }
 
 export function isComposioConfigured() {
-  return Boolean(process.env.COMPOSIO_API_KEY?.trim());
+  return Boolean(resolveComposioApiKey());
 }
 
 export function getComposioClient() {
-  const apiKey = process.env.COMPOSIO_API_KEY?.trim();
+  const apiKey = resolveComposioApiKey();
   if (!apiKey) {
     throw new Error('Composio API key is not configured');
   }
@@ -87,6 +94,9 @@ export function getComposioClient() {
 }
 
 export function getComposioEntityId(session: Session) {
+  const userId = (session.user as { id?: string } | undefined)?.id?.trim();
+  if (userId) return `user:${userId.toLowerCase()}`;
+
   const email = session.user?.email?.trim().toLowerCase();
   if (email) return email;
 
@@ -99,10 +109,15 @@ export function getComposioEntityId(session: Session) {
 export async function listEnabledApps() {
   const composio = getComposioClient();
   const apps = await composio.apps.list();
+  const byKey = new Map<string, AppItemListResponse>();
 
-  return apps
-    .filter((app) => app.enabled)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  for (const app of apps) {
+    const appKey = app.key?.trim();
+    if (!appKey) continue;
+    byKey.set(appKey.toLowerCase(), app);
+  }
+
+  return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function listEntityConnections(entityId: string) {
@@ -149,4 +164,13 @@ export function getToolkitStatusForApp(
     index.byAppName.get(normalizeToken(app.key)) ??
     index.byAppName.get(normalizeToken(app.name)) ?? { status: 'connect' }
   );
+}
+
+function resolveComposioApiKey() {
+  for (const name of COMPOSIO_API_KEY_CANDIDATES) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+
+  return null;
 }
