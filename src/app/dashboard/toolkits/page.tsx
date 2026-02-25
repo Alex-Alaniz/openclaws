@@ -182,10 +182,6 @@ const TOOLKIT_SEEDS: ToolkitSeed[] = [
   { name: 'Clearbit', slug: 'clearbit', brandColor: '#4E7AF9' },
 ];
 
-function getLogoUrl(slug: string) {
-  return `https://logos.composio.dev/api/${slug}`;
-}
-
 function hexToRgb(hex: string): [number, number, number] {
   const normalized = hex.replace('#', '');
   if (normalized.length === 3) {
@@ -203,29 +199,28 @@ function withAlpha(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function buildBorderGradient(index: number, primary: string, secondary: string) {
-  const mode = index % 4;
-  if (mode === 0) return `linear-gradient(${165 + (index % 24)}deg, ${withAlpha(primary, 0.97)}, ${withAlpha(secondary, 0.78)})`;
-  if (mode === 1) return `linear-gradient(${220 - (index % 34)}deg, ${withAlpha('#ffffff', 0.72)}, ${withAlpha(primary, 0.9)}, ${withAlpha(secondary, 0.68)})`;
-  if (mode === 2) return `conic-gradient(from var(--border-angle, ${125 + (index % 30)}deg), ${withAlpha(primary, 0.96)}, ${withAlpha(secondary, 0.9)}, ${withAlpha(primary, 0.62)}, ${withAlpha(secondary, 0.94)}, ${withAlpha(primary, 0.96)})`;
-  return `linear-gradient(${145 + (index % 20)}deg, ${withAlpha(primary, 0.94)}, ${withAlpha('#18181b', 0.84)}, ${withAlpha(secondary, 0.7)})`;
+function getLogoUrl(slug: string) {
+  return `https://logos.composio.dev/api/${slug}`;
 }
 
 const ALL_TOOLKITS: Toolkit[] = TOOLKIT_SEEDS.map((seed, index) => {
   const primary = seed.brandColor ?? COLOR_POOL[index % COLOR_POOL.length];
-  const secondary = COLOR_POOL[(index * 3 + 7) % COLOR_POOL.length];
   const status = seed.status ?? (ACTIVE_BY_DEFAULT.has(seed.name) ? 'active' : CONNECTED_BY_DEFAULT.has(seed.name) || index % 9 === 0 ? 'connected' : 'connect');
-  return { key: `${seed.slug}-${index}`, name: seed.name, slug: seed.slug, status, brandColor: primary, borderGradient: buildBorderGradient(index, primary, secondary) };
+  
+  // Refined gradient for the "colorful line edges"
+  const secondary = COLOR_POOL[(index * 7 + 13) % COLOR_POOL.length];
+  const borderGradient = `linear-gradient(${135 + (index % 45)}deg, ${withAlpha(primary, 0.95)} 0%, ${withAlpha(secondary, 0.85)} 100%)`;
+
+  return { key: `${seed.slug}-${index}`, name: seed.name, slug: seed.slug, status, brandColor: primary, borderGradient };
 });
 
 export default function ToolkitsPage() {
   const [tab, setTab] = useState<Tab>('All');
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
-  const [spotlightColor, setSpotlightColor] = useState('#38BDF8');
   const [toolkits, setToolkits] = useState<Toolkit[]>(ALL_TOOLKITS);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const isAdvancingRef = useRef(false);
 
   const filtered = useMemo(() => {
@@ -256,54 +251,89 @@ export default function ToolkitsPage() {
         setVisibleCount((previous) => Math.min(previous + LOAD_BATCH_SIZE, filtered.length));
         isAdvancingRef.current = false;
       });
-    }, { root: null, rootMargin: '420px 0px 220px 0px', threshold: 0.01 });
+    }, { root: null, rootMargin: '400px 0px 400px 0px', threshold: 0.01 });
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [filtered.length, hasMore]);
-
-  const handleConnect = (key: string) => {
-    setToolkits(prev => prev.map(t => t.key === key ? { ...t, status: 'connected' } : t));
-  };
 
   const handleGridMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    event.currentTarget.style.setProperty('--x', `${x}px`);
-    event.currentTarget.style.setProperty('--y', `${y}px`);
+    
+    // Set grid-level coords for absolute precision
+    event.currentTarget.style.setProperty('--grid-x', `${x}px`);
+    event.currentTarget.style.setProperty('--grid-y', `${y}px`);
+
+    // Update individual card local offsets
+    event.currentTarget.querySelectorAll<HTMLElement>('.toolkit-card').forEach((card) => {
+      const cardRect = card.getBoundingClientRect();
+      const localX = event.clientX - cardRect.left;
+      const localY = event.clientY - cardRect.top;
+      card.style.setProperty('--x', `${localX}px`);
+      card.style.setProperty('--y', `${localY}px`);
+    });
+  };
+
+  const handleConnect = (key: string) => {
+    setToolkits(prev => prev.map(t => t.key === key ? { ...t, status: 'connected' } : t));
   };
 
   return (
     <div className="h-full overflow-y-auto bg-[#070707] text-white">
       <style jsx global>{`
         .toolkit-card {
-          background-color: #0c0c0c !important;
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          background-color: #0c0c0c;
+          border: 1px solid rgba(255, 255, 255, 0.04);
           position: relative;
+          transition: background-color 0.3s ease;
         }
+        
+        .toolkit-card:hover {
+          background-color: #0e0e0e;
+        }
+
+        /* The "Hot Corners" colorful line edges effect */
         .toolkit-card::before {
           content: "";
           position: absolute;
-          inset: -1px;
+          inset: -1.5px;
           border-radius: inherit;
-          padding: 1px;
-          background: radial-gradient(
-            600px circle at var(--x) var(--y),
-            rgba(255, 255, 255, 0.6),
-            transparent 40%
-          );
+          padding: 1.5px; /* Thicker for the colorful edge */
+          background: var(--toolkit-gradient);
           -webkit-mask: 
-            linear-gradient(#fff 0 0) content-box, 
-            linear-gradient(#fff 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
+            radial-gradient(140px circle at var(--x) var(--y), black 0%, transparent 100%),
+            linear-gradient(#fff 0 0) content-box;
+          -webkit-mask-composite: source-in, xor;
+          mask-composite: intersect, exclude;
           pointer-events: none;
           z-index: 10;
+          opacity: 0;
+          transition: opacity 0.4s ease;
+        }
+
+        /* Activation zone: only cards within proximity light up their edges */
+        .grid-container:hover .toolkit-card::before {
+          opacity: 1;
+        }
+
+        /* Subtle inner glow when edge is active */
+        .toolkit-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: radial-gradient(100px circle at var(--x) var(--y), var(--toolkit-color-alpha), transparent 100%);
+          pointer-events: none;
+          z-index: 1;
+          opacity: 0;
+          transition: opacity 0.4s ease;
+        }
+        .grid-container:hover .toolkit-card::after {
+          opacity: 0.15;
         }
       `}</style>
-      <svg className="hidden" aria-hidden="true">
-        <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="20" /></filter></defs>
-      </svg>
+
       <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-10 pt-6 sm:px-6 xl:px-8">
         <div className="sticky top-0 z-20 rounded-[14px] border border-white/[0.08] bg-[#0A0A0A]/95 p-2 shadow-[0_16px_42px_rgba(0,0,0,0.44)] backdrop-blur-md">
           <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
@@ -318,26 +348,29 @@ export default function ToolkitsPage() {
         
         <div 
           ref={gridRef} 
-          className="relative grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 group" 
+          className="grid-container relative grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-4" 
           onMouseMove={handleGridMouseMove}
         >
           {visibleToolkits.map((toolkit) => {
             const logoUrl = getLogoUrl(toolkit.slug);
             return (
-              <article key={toolkit.key} className="toolkit-card aspect-square min-h-[240px] cursor-pointer rounded-[24px] overflow-hidden transition-all duration-300 xl:min-h-[240px] hover:bg-[#111111]" 
-                onMouseEnter={() => { setSpotlightColor(toolkit.brandColor); }}
+              <article 
+                key={toolkit.key} 
+                className="toolkit-card aspect-square min-h-[240px] cursor-pointer rounded-[24px] overflow-hidden" 
+                style={{ 
+                  '--toolkit-gradient': toolkit.borderGradient,
+                  '--toolkit-color-alpha': withAlpha(toolkit.brandColor, 0.3),
+                  '--x': '0px',
+                  '--y': '0px'
+                } as any}
               >
                 <div className="relative z-[2] h-full w-full">
-                  <div className="absolute inset-0 z-[1] opacity-0 transition-opacity duration-300 group-hover:opacity-[0.8]" style={{ background: `radial-gradient(85% 85% at 50% 50%, ${withAlpha(toolkit.brandColor, 0.4)} 0%, ${withAlpha(toolkit.brandColor, 0.08)} 45%, transparent 85%)`, filter: 'blur(24px) saturate(1.4)' }} />
-                  <div className="absolute inset-0 z-[3] grid place-items-center opacity-0 transition-opacity duration-300 hover:opacity-[0.4]" style={{ filter: "url('#toolkit-blur') saturate(6) brightness(1.4)" }}>
-                    <img alt="" className="h-20 w-20" draggable={false} src={logoUrl} />
-                  </div>
                   <div className="relative z-[4] flex h-full flex-col items-center justify-center gap-3 p-5 pt-10">
                     <div className="absolute right-4 top-4 z-[3]">
                       {toolkit.status === 'connect' ? (
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleConnect(toolkit.key); }}
-                          className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                          className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-200 hover:scale-[1.05] active:scale-[0.95]"
                         >
                           Connect
                         </button>
