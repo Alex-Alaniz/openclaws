@@ -21,8 +21,8 @@ type Toolkit = {
   borderGradient: string;
 };
 
-const INITIAL_BATCH_SIZE = 16;
-const LOAD_BATCH_SIZE = 16;
+const INITIAL_BATCH_SIZE = 24;
+const LOAD_BATCH_SIZE = 12;
 
 const COLOR_POOL = [
   '#EA4335', '#4285F4', '#34A853', '#FBBC05', '#635BFF', '#F24E1E', '#5E6AD2', '#5865F2', '#3ECF8E', '#0EA5E9', '#14B8A6', '#E11D48', '#F97316', '#8B5CF6', '#0F172A', '#F59E0B', '#22C55E', '#06B6D4', '#2563EB', '#DC2626', '#A855F7', '#84CC16', '#F43F5E', '#10B981',
@@ -271,10 +271,11 @@ export default function ToolkitsPage() {
       <style jsx global>{`
         .toolkit-card {
           background-color: #0c0c0c !important;
-          border-color: rgba(255, 255, 255, 0.08) !important;
+          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          transition: border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease !important;
         }
         .toolkit-card:hover {
-          border-color: rgba(255, 255, 255, 0.2) !important;
+          border-color: rgba(255, 255, 255, 0.15) !important;
           background-color: #0e0e0e !important;
         }
       `}</style>
@@ -282,7 +283,7 @@ export default function ToolkitsPage() {
         <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="20" /></filter></defs>
       </svg>
       <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-6 px-4 pb-10 pt-6 sm:px-6 xl:px-8">
-        <div className="sticky top-0 z-20 rounded-[14px] border border-white/[0.1] bg-[#101010]/96 p-2 shadow-[0_16px_42px_rgba(0,0,0,0.44)] backdrop-blur-md">
+        <div className="sticky top-0 z-20 rounded-[14px] border border-white/[0.08] bg-[#0A0A0A]/95 p-2 shadow-[0_16px_42px_rgba(0,0,0,0.44)] backdrop-blur-md">
           <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search across ${toolkits.length}+ toolkits...`} className="h-[42px] w-full rounded-[10px] border border-white/[0.12] bg-[#161616] px-4 text-[13px] font-medium text-white outline-none ring-0 placeholder:text-zinc-500 focus:border-white/30 xl:max-w-[640px]" />
             <div className="flex h-9 items-center gap-1.5 rounded-[10px] border border-white/[0.12] bg-[#161616] p-1">
@@ -311,10 +312,10 @@ export default function ToolkitsPage() {
           }}
         >
           <div 
-            className={`pointer-events-none absolute -inset-[200px] z-[0] hidden transition-opacity duration-300 md:block ${isGridHovering ? 'opacity-100' : 'opacity-0'}`} 
+            className={`pointer-events-none absolute -inset-[300px] z-[0] hidden transition-opacity duration-500 md:block ${isGridHovering ? 'opacity-100' : 'opacity-0'}`} 
             style={{ 
-              background: `radial-gradient(400px circle at var(--grid-x) var(--grid-y), ${withAlpha(spotlightColor, 0.12)} 0%, ${withAlpha(spotlightColor, 0.04)} 35%, transparent 70%)`,
-              filter: 'blur(50px)' 
+              background: `radial-gradient(600px circle at var(--grid-x) var(--grid-y), ${withAlpha(spotlightColor, 0.1)} 0%, ${withAlpha(spotlightColor, 0.03)} 40%, transparent 80%)`,
+              filter: 'blur(60px)' 
             }} 
           />
           
@@ -322,14 +323,13 @@ export default function ToolkitsPage() {
             {visibleToolkits.map((toolkit) => {
               const logoUrl = getLogoUrl(toolkit.slug);
               return (
-                <article key={toolkit.key} className="toolkit-card group relative aspect-square min-h-[240px] cursor-pointer rounded-[24px] border border-white/[0.08] bg-[#0C0C0C] outline outline-1 outline-white/[0.04] transition-all duration-300 ease-out hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] active:scale-[0.98] xl:min-h-[240px]" 
+                <article key={toolkit.key} className="toolkit-card group relative aspect-square min-h-[240px] cursor-pointer rounded-[24px] outline outline-1 outline-white/[0.04] transition-all duration-300 ease-out hover:shadow-[0_20px_60px_rgba(0,0,0,0.6)] active:scale-[0.98] xl:min-h-[240px]" 
                   style={{ 
                     containerType: 'size', 
-                    transform: 'perspective(1200px) rotateX(calc(var(--pointer-y, 0) * -3.5deg)) rotateY(calc(var(--pointer-x, 0) * 3.5deg)) translateY(var(--hover-y, 0px))', 
+                    transform: 'perspective(1200px) rotateX(calc(var(--pointer-y, 0) * -2.5deg)) rotateY(calc(var(--pointer-x, 0) * 2.5deg))', 
                     ['--pointer-x' as string]: 0, 
                     ['--pointer-y' as string]: 0, 
-                    ['--border-angle' as string]: '130deg', 
-                    ['--hover-y' as string]: '0px' 
+                    ['--border-angle' as string]: '130deg'
                   }}
                   onMouseEnter={() => { setSpotlightColor(toolkit.brandColor); }}
                   onMouseMove={(e) => { 
@@ -349,9 +349,9 @@ export default function ToolkitsPage() {
                     e.currentTarget.style.setProperty('--border-angle', '130deg'); 
                   }}>
                   <div className="absolute inset-0 overflow-hidden rounded-[24px]">
-                    <div className="pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-300 group-hover:opacity-[0.85]" style={{ background: `radial-gradient(85% 85% at calc(50% + (var(--pointer-x, 0) * 28%)) calc(50% + (var(--pointer-y, 0) * 26%)), ${withAlpha(toolkit.brandColor, 0.5)} 0%, ${withAlpha(toolkit.brandColor, 0.1)} 45%, transparent 85%)`, filter: 'blur(24px) saturate(1.5)' }} />
-                    <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-300 group-hover:opacity-70" style={{ background: `radial-gradient(150% 130% at 50% 120%, ${withAlpha(toolkit.brandColor, 0.2)} 0%, transparent 60%)` }} />
-                    <div className="pointer-events-none absolute inset-0 z-[3] grid place-items-center opacity-0 transition-opacity duration-300 group-hover:opacity-[0.45] will-change-transform" style={{ filter: "url('#toolkit-blur') saturate(7) brightness(1.5)", translate: 'calc(var(--pointer-x, -10) * 60cqi) calc(var(--pointer-y, -10) * 60cqh)', scale: '4.2' }}>
+                    <div className="pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-300 group-hover:opacity-[0.8]" style={{ background: `radial-gradient(85% 85% at calc(50% + (var(--pointer-x, 0) * 28%)) calc(50% + (var(--pointer-y, 0) * 26%)), ${withAlpha(toolkit.brandColor, 0.4)} 0%, ${withAlpha(toolkit.brandColor, 0.08)} 45%, transparent 85%)`, filter: 'blur(24px) saturate(1.4)' }} />
+                    <div className="pointer-events-none absolute inset-0 z-[2] opacity-0 transition-opacity duration-300 group-hover:opacity-60" style={{ background: `radial-gradient(150% 130% at 50% 120%, ${withAlpha(toolkit.brandColor, 0.15)} 0%, transparent 60%)` }} />
+                    <div className="pointer-events-none absolute inset-0 z-[3] grid place-items-center opacity-0 transition-opacity duration-300 group-hover:opacity-[0.4] will-change-transform" style={{ filter: "url('#toolkit-blur') saturate(6) brightness(1.4)", translate: 'calc(var(--pointer-x, -10) * 55cqi) calc(var(--pointer-y, -10) * 55cqh)', scale: '4' }}>
                       <img alt="" className="h-20 w-20" draggable={false} src={logoUrl} />
                     </div>
                     <div className="relative z-[4] flex h-full flex-col items-center justify-center gap-3 p-5 pt-10">
@@ -359,19 +359,19 @@ export default function ToolkitsPage() {
                         {toolkit.status === 'connect' ? (
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleConnect(toolkit.key); }}
-                            className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] group-hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]"
+                            className="inline-flex h-8 items-center justify-center rounded-[10px] border border-white/90 bg-white px-3.5 text-[11px] font-bold tracking-tight text-black transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                           >
                             Connect
                           </button>
                         ) : (
-                          <span className={`inline-flex h-8 items-center justify-center rounded-[10px] border border-white/15 px-3.5 text-[11px] font-bold tracking-tight text-white ${toolkit.status === 'active' ? 'bg-emerald-500/90' : 'bg-emerald-600/85'}`}>{toolkit.status === 'active' ? 'Active' : 'Connected'}</span>
+                          <span className={`inline-flex h-8 items-center justify-center rounded-[10px] border border-white/10 px-3.5 text-[11px] font-bold tracking-tight text-white ${toolkit.status === 'active' ? 'bg-emerald-500/80' : 'bg-emerald-600/75'}`}>{toolkit.status === 'active' ? 'Active' : 'Connected'}</span>
                         )}
                       </div>
                       <img alt="App logo" className="h-14 w-14 select-none drop-shadow-2xl" draggable={false} src={logoUrl} />
-                      <h3 className="select-none text-center text-[15px] font-semibold tracking-tight text-white/90">{toolkit.name}</h3>
+                      <h3 className="select-none text-center text-[15px] font-semibold tracking-tight text-white/80">{toolkit.name}</h3>
                     </div>
                   </div>
-                  <div className="border-glow pointer-events-none absolute inset-0 z-[5] rounded-[24px] opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ border: '2px solid transparent', background: toolkit.borderGradient, maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)', maskOrigin: 'border-box, padding-box', maskClip: 'border-box, padding-box', maskComposite: 'exclude', WebkitMaskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)', WebkitMaskOrigin: 'border-box, padding-box', WebkitMaskClip: 'border-box, padding-box', WebkitMaskComposite: 'xor', filter: `drop-shadow(0 0 35px ${withAlpha(toolkit.brandColor, 0.85)})` }} />
+                  <div className="border-glow pointer-events-none absolute inset-0 z-[5] rounded-[24px] opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ border: '2px solid transparent', background: toolkit.borderGradient, maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)', maskOrigin: 'border-box, padding-box', maskClip: 'border-box, padding-box', maskComposite: 'exclude', WebkitMaskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)', WebkitMaskOrigin: 'border-box, padding-box', WebkitMaskClip: 'border-box, padding-box', WebkitMaskComposite: 'xor', filter: `drop-shadow(0 0 30px ${withAlpha(toolkit.brandColor, 0.7)})` }} />
                 </article>
               );
             })}
