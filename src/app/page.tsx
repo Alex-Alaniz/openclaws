@@ -15,6 +15,7 @@ type Testimonial = {
   quote: string;
   name: string;
   handle: string;
+  tweetUrl?: string;
 };
 
 type TrustedLogo = {
@@ -104,47 +105,54 @@ const integrations: Integration[] = [
 const testimonials: Testimonial[] = [
   {
     quote:
-      'Setup OpenClaws yesterday. All I have to say is, wow. The fact that claw can just keep building upon itself just by talking to it in discord is crazy. The future is already here.',
+      'Setup @openclaw yesterday. All I have to say is, wow. The fact that claw can just keep building upon itself just by talking to it in discord is crazy. The future is already here.',
     name: 'Jonah',
     handle: '@jonahships_',
+    tweetUrl: 'https://x.com/jonahships_/status/2010605025844723765',
   },
   {
     quote:
-      'After years of AI hype, I thought nothing could faze me. Then I installed @openclaws. From nervous hi what can you do? to full throttle design, code review, taxes, PM, and content pipelines. AI as teammate, not tool.',
+      'After years of AI hype, I thought nothing could faze me. Then I installed @openclaw. From nervous hi what can you do? to full throttle design, code review, taxes, PM, and content pipelines. AI as teammate, not tool.',
     name: 'Lyc',
     handle: '@lycfyi',
+    tweetUrl: 'https://x.com/lycfyi/status/2014513697557758002',
   },
   {
-    quote: 'First time I have felt like I am living in the future since the launch of ChatGPT.',
+    quote: 'This is the first time I have felt like I am living in the future since the launch of ChatGPT.',
     name: 'Dave Morin',
     handle: '@davemorin',
+    tweetUrl: 'https://x.com/davemorin/status/2013723700668096605',
   },
   {
     quote:
       'Very impressed how many hard things Claw gets right. Persistent memory, persona onboarding, comms integration, heartbeats. The end result is AWESOME.',
     name: 'Aryeh Dubois',
     handle: '@AryehDubois',
+    tweetUrl: 'https://x.com/AryehDubois/status/2011742378655432791',
   },
   {
     quote:
       'Yeah this was 1,000% worth it. Autonomously running tests on my app, capturing errors through a sentry webhook, then resolving them and opening PRs. The future is here.',
     name: 'Nat Eliason',
     handle: '@nateliason',
+    tweetUrl: 'https://x.com/nateliason/status/2013725082850414592',
   },
   {
-    quote: 'OpenClaws is the first software in ages for which I constantly check for new releases on GitHub.',
+    quote: 'OpenClaw is the first software in ages for which I constantly check for new releases on GitHub.',
     name: 'Christoph Nakazawa',
     handle: '@cnakazawa',
+    tweetUrl: 'https://x.com/cnakazawa/status/2014145277465432519',
   },
   {
-    quote: 'When you experience @openclaws it gives the same kick as when we first saw ChatGPT. A fundamental shift is happening.',
+    quote: 'When you experience @openclaw it gives the same kick as when we first saw ChatGPT. A fundamental shift is happening.',
     name: 'Abhi Katiyar',
-    handle: '@abhikatiyar_',
+    handle: '@abhi__katiyar',
+    tweetUrl: 'https://x.com/abhi__katiyar/status/2014187653600526474',
   },
   {
     quote: 'The most impactful piece of technology I have used since the smartphone.',
     name: 'Alex Finn',
-    handle: '@alexfinn',
+    handle: '@AlexFinn',
   },
   {
     quote: 'This is genuinely impressive. It just works.',
@@ -157,21 +165,24 @@ const testimonials: Testimonial[] = [
     handle: '@therno',
   },
   {
-    quote: "@openclaws feels like that kind of 'just had to glue all the parts together' leap forward. Incredible experience.",
+    quote: "@openclaw feels like that kind of 'just had to glue all the parts together' leap forward. Incredible experience.",
     name: 'Mark Jaquith',
     handle: '@markjaquith',
+    tweetUrl: 'https://x.com/markjaquith/status/2010430366944055433',
   },
   {
     quote:
       'A smart model with eyes and hands at a desk with keyboard and mouse. You message it like a coworker and it does everything a person could do with that Mac mini.',
     name: 'Nathan Clark',
     handle: '@nathanclark_',
+    tweetUrl: 'https://x.com/nathanclark_/status/2014647048612773912',
   },
   {
     quote:
       "Your context and skills live on YOUR computer, not a walled garden. It's open source, community-built, and incredibly proactive.",
     name: 'Dan Peguine',
     handle: '@danpeguine',
+    tweetUrl: 'https://x.com/danpeguine/status/2014760164113477700',
   },
 ];
 
@@ -248,7 +259,7 @@ export default function Home() {
         </div>
         <div className="relative z-10 mx-auto max-w-5xl px-6 py-28 text-center md:py-40">
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">Connect All Your Tools<span className="block text-gray-400">In Under 1 Minute</span></h1>
-          <p className="mx-auto mb-8 max-w-3xl text-base md:text-lg">Your own 24/7 AI assistant with 1000+ integrations. Powered by OpenClawss.</p>
+          <p className="mx-auto mb-8 max-w-3xl text-base md:text-lg">Your own 24/7 AI assistant with 1000+ integrations. Powered by OpenClaws.</p>
           <div className="mb-8 flex flex-wrap items-center justify-center gap-3 md:gap-4">
             <Image src="/logos/powered/claude.svg" alt="Claude" width={18} height={18} />
             <Image src="/logos/powered/chatgpt.svg" alt="ChatGPT" width={18} height={18} />
@@ -396,7 +407,7 @@ export default function Home() {
                 Social Proof
               </span>
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-white md:text-5xl">Loved by builders everywhere</h2>
-              <p className="mt-4 text-lg text-zinc-400">What builders are saying about OpenClawss.</p>
+              <p className="mt-4 text-lg text-zinc-400">What builders are saying about OpenClaws.</p>
             </div>
 
             <div className="testimonial-grid mt-16">
@@ -420,11 +431,19 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 transition-colors group-hover:text-white">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-                        <path d="M18.9 2h3l-6.7 7.7L23 22h-6.1l-4.8-6.3L6.6 22h-3l7.2-8.3L1 2h6.2l4.3 5.8L18.9 2Zm-1 18h1.7L6.3 3.9H4.5L17.9 20Z" />
-                      </svg>
-                    </span>
+                    {testimonial.tweetUrl ? (
+                      <a href={testimonial.tweetUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 transition-colors group-hover:text-white hover:bg-white/10">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                          <path d="M18.9 2h3l-6.7 7.7L23 22h-6.1l-4.8-6.3L6.6 22h-3l7.2-8.3L1 2h6.2l4.3 5.8L18.9 2Zm-1 18h1.7L6.3 3.9H4.5L17.9 20Z" />
+                        </svg>
+                      </a>
+                    ) : (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 transition-colors group-hover:text-white">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                          <path d="M18.9 2h3l-6.7 7.7L23 22h-6.1l-4.8-6.3L6.6 22h-3l7.2-8.3L1 2h6.2l4.3 5.8L18.9 2Zm-1 18h1.7L6.3 3.9H4.5L17.9 20Z" />
+                        </svg>
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-[16px] leading-[1.6] font-medium text-zinc-300 group-hover:text-zinc-200 transition-colors">&ldquo;{testimonial.quote}&rdquo;</p>
