@@ -437,7 +437,7 @@ export default function ToolkitsPage() {
                           </div>
                         )}
                         <img alt={`${toolkit.name} logo`} className="h-12 w-12 select-none" draggable={false} src={logoUrl} />
-                        <h3 className="select-none text-[13px] font-bold tracking-tight text-white/90">{toolkit.name}</h3>
+                        <h3 className="select-none text-[13px] font-bold tracking-tight text-white/90">{getDisplayName(toolkit.slug)}</h3>
                       </div>
                     </div>
 
