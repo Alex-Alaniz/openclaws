@@ -291,13 +291,21 @@ export default function Home() {
               </div>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="mb-6 text-2xl font-semibold text-gray-900">Get Started</h2>
-              <form className="space-y-4">
-                <button type="button" className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold">Continue with Google</button>
-                <input type="email" placeholder="Email" className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm" />
-                <input type="password" placeholder="Password" className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm" />
-                <button type="submit" className="w-full rounded-lg bg-[#DC2626] px-6 py-3.5 text-base font-semibold text-white hover:bg-red-700">Deploy My Agent</button>
-              </form>
+              <h2 className="mb-2 text-2xl font-semibold text-gray-900">OpenClaws Pro</h2>
+              <div className="mb-4 flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-gray-900">$29</span>
+                <span className="text-gray-500">/month</span>
+              </div>
+              <ul className="mb-6 space-y-3 text-sm text-gray-600">
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-green-600">&#10003;</span>Your own dedicated AI gateway</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-green-600">&#10003;</span>1,000+ tool integrations via Composio</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-green-600">&#10003;</span>Persistent memory &amp; conversations</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-green-600">&#10003;</span>BYO API keys or use managed access</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-green-600">&#10003;</span>Telegram, Discord &amp; WhatsApp channels</li>
+              </ul>
+              <Link href="/login" className="block w-full rounded-lg bg-[#DC2626] px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-red-700">
+                Get Started
+              </Link>
             </div>
           </div>
         </section>
@@ -404,7 +412,7 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="mx-auto max-w-2xl text-center">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">
-                Social Proof
+                Testimonials
               </span>
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-white md:text-5xl">Loved by builders everywhere</h2>
               <p className="mt-4 text-lg text-zinc-400">What builders are saying about OpenClaws.</p>
@@ -465,6 +473,25 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <footer className="border-t border-gray-200 bg-white py-12">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+            <div className="flex items-center gap-2">
+              <img src="/openclaw.svg" alt="OpenClaws" className="h-5 w-5" />
+              <span className="text-sm font-semibold text-gray-900">OpenClaws</span>
+              <span className="text-xs text-gray-400">by BearifiedCo</span>
+            </div>
+            <nav className="flex flex-wrap items-center gap-6 text-sm text-gray-500">
+              <Link href="/privacy" className="hover:text-gray-900">Privacy</Link>
+              <Link href="/terms" className="hover:text-gray-900">Terms</Link>
+              <a href="https://discord.gg/bearified" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900">Discord</a>
+              <a href="https://x.com/openclaws" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900">X / Twitter</a>
+            </nav>
+          </div>
+          <p className="mt-8 text-center text-xs text-gray-400">&copy; 2026 BearifiedCo. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

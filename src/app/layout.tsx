@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     url: 'https://openclaws.biz',
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'OpenClaws — Connect All Your Tools',
     description: 'Your own 24/7 AI assistant with 1000+ integrations.',
   },
