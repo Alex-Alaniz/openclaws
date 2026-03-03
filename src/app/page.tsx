@@ -104,13 +104,13 @@ const integrations: Integration[] = [
 const testimonials: Testimonial[] = [
   {
     quote:
-      'Setup OpenClaw yesterday. All I have to say is, wow. The fact that claw can just keep building upon itself just by talking to it in discord is crazy. The future is already here.',
+      'Setup OpenClaws yesterday. All I have to say is, wow. The fact that claw can just keep building upon itself just by talking to it in discord is crazy. The future is already here.',
     name: 'Jonah',
     handle: '@jonahships_',
   },
   {
     quote:
-      'After years of AI hype, I thought nothing could faze me. Then I installed @openclaw. From nervous hi what can you do? to full throttle design, code review, taxes, PM, and content pipelines. AI as teammate, not tool.',
+      'After years of AI hype, I thought nothing could faze me. Then I installed @openclaws. From nervous hi what can you do? to full throttle design, code review, taxes, PM, and content pipelines. AI as teammate, not tool.',
     name: 'Lyc',
     handle: '@lycfyi',
   },
@@ -132,12 +132,12 @@ const testimonials: Testimonial[] = [
     handle: '@nateliason',
   },
   {
-    quote: 'OpenClaw is the first software in ages for which I constantly check for new releases on GitHub.',
+    quote: 'OpenClaws is the first software in ages for which I constantly check for new releases on GitHub.',
     name: 'Christoph Nakazawa',
     handle: '@cnakazawa',
   },
   {
-    quote: 'When you experience @openclaw it gives the same kick as when we first saw ChatGPT. A fundamental shift is happening.',
+    quote: 'When you experience @openclaws it gives the same kick as when we first saw ChatGPT. A fundamental shift is happening.',
     name: 'Abhi Katiyar',
     handle: '@abhikatiyar_',
   },
@@ -157,7 +157,7 @@ const testimonials: Testimonial[] = [
     handle: '@therno',
   },
   {
-    quote: "@openclaw feels like that kind of 'just had to glue all the parts together' leap forward. Incredible experience.",
+    quote: "@openclaws feels like that kind of 'just had to glue all the parts together' leap forward. Incredible experience.",
     name: 'Mark Jaquith',
     handle: '@markjaquith',
   },
@@ -247,8 +247,8 @@ export default function Home() {
           <div className="hero-gradient-orb orb-3" />
         </div>
         <div className="relative z-10 mx-auto max-w-5xl px-6 py-28 text-center md:py-40">
-          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">Deploy OpenClaw<span className="block text-gray-400">In Under 1 Minute</span></h1>
-          <p className="mx-auto mb-8 max-w-3xl text-base md:text-lg">Your own 24/7 AI assistant on Telegram, Discord, or WhatsApp.</p>
+          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">Connect All Your Tools<span className="block text-gray-400">In Under 1 Minute</span></h1>
+          <p className="mx-auto mb-8 max-w-3xl text-base md:text-lg">Your own 24/7 AI assistant with 1000+ integrations. Powered by OpenClawss.</p>
           <div className="mb-8 flex flex-wrap items-center justify-center gap-3 md:gap-4">
             <Image src="/logos/powered/claude.svg" alt="Claude" width={18} height={18} />
             <Image src="/logos/powered/chatgpt.svg" alt="ChatGPT" width={18} height={18} />
@@ -396,7 +396,7 @@ export default function Home() {
                 Social Proof
               </span>
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-white md:text-5xl">Loved by builders everywhere</h2>
-              <p className="mt-4 text-lg text-zinc-400">Tweet-like shoutouts from users shipping with OpenClaw.</p>
+              <p className="mt-4 text-lg text-zinc-400">What builders are saying about OpenClawss.</p>
             </div>
 
             <div className="testimonial-grid mt-16">

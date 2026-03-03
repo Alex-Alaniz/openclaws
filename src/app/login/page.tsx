@@ -60,32 +60,36 @@ export default function LoginPage() {
             Continue with X
           </button>
 
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-white/[0.06]" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-[#0F0F0F] px-4 text-[10px] font-bold tracking-[0.2em] text-zinc-600 uppercase">OR EMAIL</span>
-            </div>
-          </div>
+          {process.env.NODE_ENV === 'development' && (
+            <>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t border-white/[0.06]" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-[#0F0F0F] px-4 text-[10px] font-bold tracking-[0.2em] text-zinc-600 uppercase">DEV ONLY</span>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              className="h-[52px] w-full rounded-[14px] border border-white/[0.08] bg-black/40 px-4 text-[15px] text-white outline-none ring-0 placeholder:text-zinc-600 transition-colors focus:border-white/20"
-            />
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="h-[52px] w-full rounded-[14px] border border-white/[0.08] bg-black/40 px-4 text-[15px] text-white outline-none ring-0 placeholder:text-zinc-600 transition-colors focus:border-white/20"
+                />
 
-            <button
-              type="button"
-              onClick={() => signIn('credentials', { email, callbackUrl: '/dashboard' })}
-              className="h-[52px] w-full rounded-[14px] border border-white/[0.12] bg-white/[0.05] px-4 text-[15px] font-bold text-white transition-all hover:bg-white/[0.1] active:scale-[0.99]"
-            >
-              Continue with email
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => signIn('credentials', { email, callbackUrl: '/dashboard' })}
+                  className="h-[52px] w-full rounded-[14px] border border-white/[0.12] bg-white/[0.05] px-4 text-[15px] font-bold text-white transition-all hover:bg-white/[0.1] active:scale-[0.99]"
+                >
+                  Continue with email
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <p className="mt-8 text-center text-[13px] font-medium text-zinc-600">

@@ -131,7 +131,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             title="Credits"
           >
             <BillingIcon className="h-4 w-4" />
-            <span>$5.00</span>
+            <span>Usage</span>
           </Link>
 
           <Link href="https://discord.gg/bearified" target="_blank" className={iconButtonBase} title="Discord">
