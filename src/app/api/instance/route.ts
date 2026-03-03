@@ -27,7 +27,12 @@ export async function GET() {
 
   try {
     const instance = await getInstanceByUserId(email);
-    return NextResponse.json({ instance });
+    if (instance) {
+      // Strip sensitive fields from response
+      const { setup_password, ...safe } = instance;
+      return NextResponse.json({ instance: safe });
+    }
+    return NextResponse.json({ instance: null });
   } catch (error) {
     console.error('Failed to fetch instance:', error);
     return NextResponse.json({ error: 'Failed to fetch instance' }, { status: 500 });
@@ -119,9 +124,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ instance });
   } catch (error) {
     console.error('Gateway provisioning failed:', error);
-    const message = error instanceof Error ? error.message : 'Provisioning failed';
-    await updateInstanceStatus(email, 'error', { error_message: message }).catch(() => {});
-    return NextResponse.json({ error: message }, { status: 500 });
+    const internalMessage = error instanceof Error ? error.message : 'Provisioning failed';
+    await updateInstanceStatus(email, 'error', { error_message: internalMessage }).catch(() => {});
+    return NextResponse.json({ error: 'Gateway provisioning failed. Please try again.' }, { status: 500 });
   }
 }
 

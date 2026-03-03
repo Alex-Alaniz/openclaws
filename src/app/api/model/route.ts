@@ -39,9 +39,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const ALLOWED_MODELS = [
+    'claude-sonnet-4-20250514',
+    'claude-opus-4-20250514',
+    'gpt-4o',
+  ];
+
   const body = await req.json().catch(() => ({})) as { model?: string };
-  if (!body.model || typeof body.model !== 'string') {
-    return NextResponse.json({ error: 'model is required' }, { status: 400 });
+  if (!body.model || typeof body.model !== 'string' || !ALLOWED_MODELS.includes(body.model)) {
+    return NextResponse.json({ error: 'Invalid model' }, { status: 400 });
   }
 
   try {

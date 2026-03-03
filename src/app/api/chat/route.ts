@@ -20,8 +20,8 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({})) as { message?: string; conversationId?: string; model?: string };
-  if (!body.message || typeof body.message !== 'string') {
-    return NextResponse.json({ error: 'message is required' }, { status: 400 });
+  if (!body.message || typeof body.message !== 'string' || body.message.length > 32_000) {
+    return NextResponse.json({ error: 'message is required and must be under 32000 characters' }, { status: 400 });
   }
 
   try {

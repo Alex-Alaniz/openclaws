@@ -1,6 +1,10 @@
 import { getSupabase } from './supabase';
 
-const ENCRYPTION_KEY = process.env.SUPABASE_ENCRYPTION_KEY || 'openclaws-default-key';
+function getEncryptionKey(): string {
+  const key = process.env.SUPABASE_ENCRYPTION_KEY;
+  if (!key) throw new Error('SUPABASE_ENCRYPTION_KEY is not configured');
+  return key;
+}
 
 export type AiProvider = 'anthropic' | 'openai' | 'google';
 export type KeyType = 'oauth_token' | 'api_key';
@@ -69,7 +73,7 @@ export async function storeProviderKey(
     p_provider: resolvedProvider,
     p_key_type: resolvedKeyType,
     p_raw_key: trimmed,
-    p_passphrase: ENCRYPTION_KEY,
+    p_passphrase: getEncryptionKey(),
     p_suffix: keySuffix,
   });
 
@@ -96,7 +100,7 @@ export async function getDecryptedKey(
   const { data, error } = await getSupabase().rpc('get_decrypted_key', {
     p_user_id: userId,
     p_provider: provider,
-    p_passphrase: ENCRYPTION_KEY,
+    p_passphrase: getEncryptionKey(),
   });
 
   if (error) throw new Error(`Failed to decrypt key: ${error.message}`);
