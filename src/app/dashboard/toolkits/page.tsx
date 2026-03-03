@@ -319,7 +319,7 @@ export default function ToolkitsPage() {
     }
   }, [fetchToolkits]);
 
-  const PROXIMITY_PX = 48;
+  const PROXIMITY_PX = 280;
 
   const handleGridPointerMove = useCallback((e: React.PointerEvent) => {
     const grid = gridRef.current;
@@ -329,7 +329,6 @@ export default function ToolkitsPage() {
     const my = e.clientY;
 
     for (const card of cards) {
-      // Skip the card the cursor is directly over
       if (card === hoveredCardRef.current) continue;
 
       const rect = card.getBoundingClientRect();
@@ -338,10 +337,10 @@ export default function ToolkitsPage() {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < PROXIMITY_PX && dist > 0) {
-        const strength = 1 - dist / PROXIMITY_PX;
-        const opacity = (strength * 0.55).toFixed(3);
+        // Exponential decay: nearby cards glow strongly, far cards glow faintly
+        const t = 1 - dist / PROXIMITY_PX;
+        const opacity = (0.55 * Math.pow(t, 1.5)).toFixed(3);
 
-        // Clamp pointer to card's nearest edge
         const cx = Math.max(rect.left, Math.min(mx, rect.right));
         const cy = Math.max(rect.top, Math.min(my, rect.bottom));
         const rx = ((cx - rect.left) / rect.width - 0.5) * 2;
@@ -508,7 +507,7 @@ export default function ToolkitsPage() {
                     <div
                       className="pointer-events-none absolute inset-[-2px] z-[2] rounded-xl transition-opacity duration-300"
                       style={{
-                        opacity: 'var(--glow-opacity, 0)',
+                        opacity: 'min(calc(var(--glow-opacity, 0) * 1.4), 1)',
                         border: '2px solid transparent',
                         background: toolkit.borderGradient,
                         maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)',
