@@ -93,7 +93,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-8 text-center text-[13px] font-medium text-zinc-600">
-          Don&apos;t have an account? <span className="text-zinc-400 cursor-pointer hover:text-white transition-colors">Sign up</span>
+          Signing in automatically creates your account
         </p>
       </div>
     </div>

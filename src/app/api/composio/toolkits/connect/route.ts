@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getComposioClient, getComposioEntityId, isComposioConfigured } from '@/lib/composio';
 
 export const runtime = 'nodejs';
@@ -10,10 +11,10 @@ type ConnectBody = {
   appName?: unknown;
 };
 
-function buildRedirectUri(request: Request) {
-  const origin = request.headers.get('origin')?.trim() || process.env.NEXTAUTH_URL?.trim();
-  if (!origin) return undefined;
-  return `${origin.replace(/\/+$/, '')}/dashboard/toolkits`;
+function buildRedirectUri() {
+  const base = process.env.NEXTAUTH_URL?.trim();
+  if (!base) return undefined;
+  return `${base.replace(/\/+$/, '')}/dashboard/toolkits`;
 }
 
 export async function POST(request: Request) {
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const email = session.user.email?.trim().toLowerCase() ?? 'anon';
+  const rl = rateLimit(`${email}:/api/composio/toolkits/connect`, 10, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   if (!isComposioConfigured()) {
     return NextResponse.json({ error: 'Composio is not configured on the server.' }, { status: 503 });
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
   try {
     const entityId = getComposioEntityId(session);
     const entity = getComposioClient().getEntity(entityId);
-    const redirectUri = buildRedirectUri(request);
+    const redirectUri = buildRedirectUri();
 
     const requestResult = await entity.initiateConnection({
       appName,

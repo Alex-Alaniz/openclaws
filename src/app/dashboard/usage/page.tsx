@@ -6,11 +6,11 @@ export default function UsagePage() {
 
         <section className="rounded-xl border border-white/[0.1] bg-[#151515] p-5">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-400">Current Balance</span>
-            <span className="text-sm font-semibold text-zinc-100">$5.00</span>
+            <span className="text-sm text-zinc-400">Plan</span>
+            <span className="text-sm font-semibold text-zinc-100">OpenClaws Pro — $29/mo</span>
           </div>
           <p className="mt-3 text-xs text-zinc-500">
-            Usage details will appear here after connector and tool execution events are live.
+            Detailed usage metrics and cost breakdowns are coming soon. Your subscription covers unlimited gateway access.
           </p>
         </section>
       </div>

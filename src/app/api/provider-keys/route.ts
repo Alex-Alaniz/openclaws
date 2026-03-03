@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { detectKeyType, storeProviderKey, listProviderKeys, deleteProviderKey, getDecryptedKey } from '@/lib/provider-keys';
 import { getInstanceByUserId, getSupabase } from '@/lib/supabase';
 import { updateMachineEnv } from '@/lib/fly';
@@ -36,6 +37,9 @@ export async function POST(req: Request) {
   if (!session?.user || !email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = rateLimit(`${email}:POST:/api/provider-keys`, 20, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const body = await req.json().catch(() => ({})) as { key?: string };
   if (!body.key || typeof body.key !== 'string') {

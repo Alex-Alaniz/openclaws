@@ -9,13 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@next-auth/prisma-adapter": "^1.0.7",
     "@sentry/nextjs": "^10.42.0",
     "@supabase/supabase-js": "^2.97.0",
     "composio-core": "^0.5.39",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
-    "playwright": "^1.58.2",
     "posthog-js": "^1.357.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",

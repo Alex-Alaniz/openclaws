@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { validateProviderKey } from '@/lib/provider-keys';
 
 export const runtime = 'nodejs';
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
   if (!session?.user || !email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = rateLimit(`${email}:/api/provider-keys/validate`, 10, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const body = await req.json().catch(() => ({})) as { provider?: string };
   const provider = body.provider;

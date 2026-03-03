@@ -374,7 +374,10 @@ export default function SettingsPage() {
         <h2 className="mb-4 text-lg font-semibold">Channel Configuration</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {['Telegram', 'Discord', 'WhatsApp'].map((channel) => (
-            <button key={channel} className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm hover:bg-white/10">{channel}</button>
+            <div key={channel} className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-400">
+              <span>{channel}</span>
+              <span className="ml-2 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-zinc-500">Coming Soon</span>
+            </div>
           ))}
         </div>
       </section>

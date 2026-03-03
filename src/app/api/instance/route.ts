@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import {
   getInstanceByUserId,
   upsertInstance,
@@ -47,12 +48,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const rl = rateLimit(`${email}:POST:/api/instance`, 3, 3_600_000);
+  if (!rl.success) return rateLimitResponse(rl);
+
   // Check for existing instance
   try {
     const existing = await getInstanceByUserId(email);
     if (existing && (existing.status === 'running' || existing.status === 'provisioning')) {
+      const { setup_password, ...safe } = existing;
       return NextResponse.json(
-        { error: 'Instance already exists', instance: existing },
+        { error: 'Instance already exists', instance: safe },
         { status: 409 },
       );
     }
@@ -121,7 +126,11 @@ export async function POST(req: Request) {
     });
 
     const instance = await getInstanceByUserId(email);
-    return NextResponse.json({ instance });
+    if (instance) {
+      const { setup_password: _sp, ...safe } = instance;
+      return NextResponse.json({ instance: safe });
+    }
+    return NextResponse.json({ instance: null });
   } catch (error) {
     console.error('Gateway provisioning failed:', error);
     const internalMessage = error instanceof Error ? error.message : 'Provisioning failed';
@@ -137,6 +146,9 @@ export async function DELETE() {
   if (!session?.user || !email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = rateLimit(`${email}:DELETE:/api/instance`, 5, 3_600_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const instance = await getInstanceByUserId(email);
   if (!instance) {
@@ -161,9 +173,9 @@ export async function DELETE() {
     }
   } catch (error) {
     console.error('Gateway destruction failed:', error);
-    const message = error instanceof Error ? error.message : 'Destruction failed';
-    await updateInstanceStatus(email, 'error', { error_message: message }).catch(() => {});
-    return NextResponse.json({ error: message }, { status: 500 });
+    const internalMessage = error instanceof Error ? error.message : 'Destruction failed';
+    await updateInstanceStatus(email, 'error', { error_message: internalMessage }).catch(() => {});
+    return NextResponse.json({ error: 'Gateway destruction failed. Please try again.' }, { status: 500 });
   }
 
   // Remove DB row

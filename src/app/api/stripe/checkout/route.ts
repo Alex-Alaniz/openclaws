@@ -2,12 +2,16 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { authOptions } from '@/lib/auth';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function POST() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = rateLimit(`${session.user.email}:/api/stripe/checkout`, 5, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const priceId = process.env.STRIPE_PRICE_ID;

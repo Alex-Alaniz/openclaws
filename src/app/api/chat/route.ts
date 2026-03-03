@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getInstanceByUserId } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -13,6 +14,9 @@ export async function POST(req: Request) {
   if (!session?.user || !email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = rateLimit(`${email}:/api/chat`, 30, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const instance = await getInstanceByUserId(email);
   if (!instance || instance.status !== 'running' || !instance.gateway_url || !instance.gateway_token) {

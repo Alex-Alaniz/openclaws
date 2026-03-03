@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import {
   buildToolkitStatusIndex,
   getComposioEntityId,
@@ -23,6 +24,10 @@ export async function GET() {
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const email = session.user.email?.trim().toLowerCase() ?? 'anon';
+  const rl = rateLimit(`${email}:/api/composio/toolkits`, 30, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   if (!isComposioConfigured()) {
     return NextResponse.json(
