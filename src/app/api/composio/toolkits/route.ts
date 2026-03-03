@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import {
@@ -76,7 +77,7 @@ export async function GET() {
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
-    console.error('Failed to list Composio toolkits', error);
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: 'Failed to fetch toolkits from Composio.' },
       {

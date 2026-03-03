@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import {
@@ -36,7 +37,7 @@ export async function GET() {
     }
     return NextResponse.json({ instance: null });
   } catch (error) {
-    console.error('Failed to fetch instance:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to fetch instance' }, { status: 500 });
   }
 }
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
       );
     }
   } catch (err) {
-    console.error('Subscription check failed:', err);
+    Sentry.captureException(err);
     // Allow provisioning if Stripe is unreachable — webhook already gates the primary flow
   }
 
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
       error_message: null,
     });
   } catch (error) {
-    console.error('Failed to create instance record:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to initiate provisioning' }, { status: 500 });
   }
 
@@ -147,7 +148,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ instance: null });
   } catch (error) {
-    console.error('Gateway provisioning failed:', error);
+    Sentry.captureException(error);
     const internalMessage = error instanceof Error ? error.message : 'Provisioning failed';
     await updateInstanceStatus(email, 'error', { error_message: internalMessage }).catch(() => {});
     return NextResponse.json({ error: 'Gateway provisioning failed. Please try again.' }, { status: 500 });
@@ -187,7 +188,7 @@ export async function DELETE() {
       });
     }
   } catch (error) {
-    console.error('Gateway destruction failed:', error);
+    Sentry.captureException(error);
     const internalMessage = error instanceof Error ? error.message : 'Destruction failed';
     await updateInstanceStatus(email, 'error', { error_message: internalMessage }).catch(() => {});
     return NextResponse.json({ error: 'Gateway destruction failed. Please try again.' }, { status: 500 });
@@ -197,7 +198,7 @@ export async function DELETE() {
   try {
     await deleteInstanceByUserId(email);
   } catch (error) {
-    console.error('Failed to delete instance record:', error);
+    Sentry.captureException(error);
   }
 
   return NextResponse.json({ success: true });

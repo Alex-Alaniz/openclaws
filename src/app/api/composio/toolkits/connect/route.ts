@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getComposioClient, getComposioEntityId, isComposioConfigured } from '@/lib/composio';
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
       redirectUrl: requestResult.redirectUrl,
     });
   } catch (error) {
-    console.error(`Failed to initiate Composio connection for ${appName}`, error);
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: 'Failed to initiate Composio connection.' },
       { status: 500 },

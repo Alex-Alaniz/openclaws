@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getInstanceByUserId } from '@/lib/supabase';
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
     const data = await gatewayRes.json();
     return NextResponse.json(data);
   } catch (err) {
-    console.error('Chat proxy error:', err);
+    Sentry.captureException(err);
     return NextResponse.json({ error: 'Failed to reach gateway' }, { status: 502 });
   }
 }

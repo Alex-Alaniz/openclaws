@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getSubscriptionStatus } from '@/lib/stripe';
@@ -26,7 +27,7 @@ export async function GET() {
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
     });
   } catch (error) {
-    console.error('Failed to check subscription:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to check subscription status' }, { status: 500 });
   }
 }

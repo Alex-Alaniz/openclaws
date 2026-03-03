@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import * as Sentry from '@sentry/nextjs';
 import { upsertInstance, updateInstanceStatus, getInstanceByUserId } from '@/lib/supabase';
 import { provisionGateway, destroyGateway } from '@/lib/fly';
 
@@ -55,17 +56,16 @@ export async function POST(req: Request) {
               });
             })
             .catch(async (err) => {
-              console.error('Gateway provisioning failed:', err);
+              Sentry.captureException(err);
               await updateInstanceStatus(userEmail.toLowerCase(), 'error', {
                 error_message: err instanceof Error ? err.message : 'Provisioning failed',
               }).catch(() => {});
             });
         } catch (err) {
-          console.error('Failed to initiate provisioning:', err);
+          Sentry.captureException(err);
         }
       }
 
-      console.log('Stripe webhook checkout.session.completed:', checkoutSession.id);
     }
 
     if (event.type === 'customer.subscription.deleted') {
@@ -74,7 +74,6 @@ export async function POST(req: Request) {
       const email = 'email' in customer ? customer.email?.toLowerCase() : null;
 
       if (email) {
-        console.log('Subscription cancelled for:', email);
         const instance = await getInstanceByUserId(email);
         if (instance && instance.fly_app_name && instance.fly_machine_id && instance.fly_volume_id) {
           await updateInstanceStatus(email, 'deleting');
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
               await deleteInstanceByUserId(email);
             })
             .catch(async (err) => {
-              console.error('Gateway teardown on cancellation failed:', err);
+              Sentry.captureException(err);
               await updateInstanceStatus(email, 'error', {
                 error_message: 'Subscription cancelled but gateway teardown failed',
               }).catch(() => {});
@@ -102,7 +101,6 @@ export async function POST(req: Request) {
       const email = invoice.customer_email?.toLowerCase();
 
       if (email) {
-        console.log('Payment failed for:', email);
         await updateInstanceStatus(email, 'error', {
           error_message: 'Payment failed. Please update your billing information.',
         }).catch(() => {});
@@ -111,7 +109,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error('Stripe webhook signature verification failed:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 400 });
   }
 }

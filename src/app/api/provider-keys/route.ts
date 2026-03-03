@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { detectKeyType, storeProviderKey, listProviderKeys, deleteProviderKey, getDecryptedKey } from '@/lib/provider-keys';
@@ -25,7 +26,7 @@ export async function GET() {
     const keys = await listProviderKeys(email);
     return NextResponse.json({ keys });
   } catch (error) {
-    console.error('Failed to list provider keys:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to list keys' }, { status: 500 });
   }
 }
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
         try {
           await updateMachineEnv(instance.fly_app_name, instance.fly_machine_id, envUpdate);
         } catch (err) {
-          console.error('Failed to push key to gateway:', err);
+          Sentry.captureException(err);
           // Non-fatal — key is stored, gateway update failed
         }
       }
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ key: keyInfo, aiMode });
   } catch (error) {
-    console.error('Failed to store provider key:', error);
+    Sentry.captureException(error);
     const message = error instanceof Error ? error.message : 'Failed to store key';
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -122,7 +123,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ deleted });
   } catch (error) {
-    console.error('Failed to delete provider key:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to delete key' }, { status: 500 });
   }
 }

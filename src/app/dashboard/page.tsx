@@ -262,7 +262,7 @@ export default function DashboardPage() {
                   <rect width="18" height="18" x="3" y="3" rx="2" />
                   <path d="M3 9h18M9 21V9" />
                 </svg>
-                <p>Tool execution — coming soon</p>
+                <p>Tool calls will appear here during conversations</p>
               </div>
             </div>
           </div>

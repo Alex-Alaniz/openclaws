@@ -168,7 +168,7 @@ export async function validateProviderKey(
     }
     return { valid: false, error: `Validation not implemented for ${provider}` };
   } catch (err) {
-    console.error('Key validation failed:', err);
+    // Validation failure is returned to caller — no logging needed
     return { valid: false, error: 'Validation request failed' };
   }
 }

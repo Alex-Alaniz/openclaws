@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
@@ -44,7 +45,7 @@ export async function POST() {
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
-    console.error('Stripe checkout session error:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
   }
 }

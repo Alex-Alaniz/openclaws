@@ -175,8 +175,8 @@ export default function SettingsPage() {
       });
       if (!res.ok) throw new Error('Failed to update model');
       setSelectedModel(modelId);
-    } catch (err) {
-      console.error('Model selection error:', err);
+    } catch {
+      // Error handled by UI state
     } finally {
       setModelLoading(false);
     }
@@ -210,8 +210,8 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error('Failed to delete key');
       await fetchKeys();
       await fetchModel();
-    } catch (err) {
-      console.error('Delete key error:', err);
+    } catch {
+      // Error handled by UI state
     }
   };
 

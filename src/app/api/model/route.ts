@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getInstanceByUserId, getSupabase } from '@/lib/supabase';
@@ -27,7 +28,7 @@ export async function GET() {
       aiMode: instance?.ai_mode ?? 'managed',
     });
   } catch (error) {
-    console.error('Failed to get model:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to get model' }, { status: 500 });
   }
 }
@@ -69,13 +70,13 @@ export async function POST(req: Request) {
           SELECTED_MODEL: body.model,
         });
       } catch (err) {
-        console.error('Failed to push model to gateway:', err);
+        Sentry.captureException(err);
       }
     }
 
     return NextResponse.json({ selectedModel: body.model });
   } catch (error) {
-    console.error('Failed to set model:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to set model' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { validateProviderKey } from '@/lib/provider-keys';
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
     const result = await validateProviderKey(email, provider as 'anthropic' | 'openai' | 'google');
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Validation error:', error);
+    Sentry.captureException(error);
     return NextResponse.json({ valid: false, error: 'Validation failed' }, { status: 500 });
   }
 }
