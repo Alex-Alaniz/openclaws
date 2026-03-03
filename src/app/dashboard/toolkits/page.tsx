@@ -351,6 +351,10 @@ export default function ToolkitsPage() {
         card.style.setProperty('--pointer-x', rx.toFixed(3));
         card.style.setProperty('--pointer-y', ry.toFixed(3));
         card.style.setProperty('--border-angle', `${angle.toFixed(1)}deg`);
+        const pctX = ((cx - rect.left) / rect.width * 100).toFixed(1);
+        const pctY = ((cy - rect.top) / rect.height * 100).toFixed(1);
+        card.style.setProperty('--cursor-px', `${pctX}%`);
+        card.style.setProperty('--cursor-py', `${pctY}%`);
       } else if (dist >= PROXIMITY_PX) {
         card.style.setProperty('--glow-opacity', '0');
       }
@@ -436,6 +440,8 @@ export default function ToolkitsPage() {
                       ['--pointer-y' as string]: '0',
                       ['--border-angle' as string]: '130deg',
                       ['--glow-opacity' as string]: '0',
+                      ['--cursor-px' as string]: '50%',
+                      ['--cursor-py' as string]: '50%',
                     }}
                     onMouseEnter={(e) => {
                       hoveredCardRef.current = e.currentTarget;
@@ -452,6 +458,8 @@ export default function ToolkitsPage() {
                       e.currentTarget.style.setProperty('--pointer-y', cy.toFixed(3));
                       e.currentTarget.style.setProperty('--border-angle', `${angle.toFixed(1)}deg`);
                       e.currentTarget.style.setProperty('--glow-opacity', '0.85');
+                      e.currentTarget.style.setProperty('--cursor-px', `${((x / rect.width) * 100).toFixed(1)}%`);
+                      e.currentTarget.style.setProperty('--cursor-py', `${((y / rect.height) * 100).toFixed(1)}%`);
                     }}
                     onMouseLeave={(e) => {
                       hoveredCardRef.current = null;
@@ -459,6 +467,8 @@ export default function ToolkitsPage() {
                       e.currentTarget.style.setProperty('--pointer-y', '0');
                       e.currentTarget.style.setProperty('--border-angle', '130deg');
                       e.currentTarget.style.setProperty('--glow-opacity', '0');
+                      e.currentTarget.style.setProperty('--cursor-px', '50%');
+                      e.currentTarget.style.setProperty('--cursor-py', '50%');
                     }}
                   >
                     {/* Blurred logo follows pointer — ambient glow behind content */}
@@ -503,13 +513,13 @@ export default function ToolkitsPage() {
                       </div>
                     </div>
 
-                    {/* Brand border glow — gradient clipped to 2px ring via mask-composite */}
+                    {/* Brand border glow — radial spotlight follows cursor, clipped to 2px ring */}
                     <div
                       className="pointer-events-none absolute inset-[-2px] z-[2] rounded-xl transition-opacity duration-300"
                       style={{
                         opacity: 'min(calc(var(--glow-opacity, 0) * 1.4), 1)',
                         border: '2px solid transparent',
-                        background: toolkit.borderGradient,
+                        background: `radial-gradient(circle 120px at var(--cursor-px, 50%) var(--cursor-py, 50%), ${withAlpha(toolkit.brandColor, 1)} 0%, ${withAlpha(toolkit.brandColor, 0.6)} 35%, transparent 100%)`,
                         maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)',
                         maskOrigin: 'border-box, padding-box',
                         maskClip: 'border-box, padding-box',
@@ -518,7 +528,7 @@ export default function ToolkitsPage() {
                         WebkitMaskOrigin: 'border-box, padding-box',
                         WebkitMaskClip: 'border-box, padding-box',
                         WebkitMaskComposite: 'xor',
-                        filter: `drop-shadow(0 0 12px ${withAlpha(toolkit.brandColor, 0.5)})`,
+                        filter: `drop-shadow(0 0 14px ${withAlpha(toolkit.brandColor, 0.6)})`,
                       }}
                     />
                   </article>
