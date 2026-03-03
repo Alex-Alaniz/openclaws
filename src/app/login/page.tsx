@@ -29,12 +29,12 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#080808] px-6 py-10 text-white font-sans">
       <div className="w-full max-w-[440px] rounded-[32px] border border-white/[0.08] bg-[#0F0F0F] p-12 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]">
         <div className="mb-10 flex items-center justify-center gap-4 text-center">
-          <span className="grid h-10 w-10 place-items-center rounded-[12px] border border-white/15 bg-white/[0.05] text-[12px] font-bold tracking-wider text-white">
-            OC
-          </span>
+          <div className="grid h-10 w-10 place-items-center rounded-[12px] border border-white/15 bg-white/[0.05]">
+            <img src="/openclaw.svg" alt="OpenClaws" className="h-7 w-7" />
+          </div>
           <div className="text-left">
             <p className="text-[22px] font-bold tracking-tight text-white leading-none">OpenClaws</p>
-            <p className="mt-1 text-[11px] font-bold tracking-wide text-zinc-500 uppercase">by Bearified</p>
+            <p className="mt-1 text-[11px] font-bold tracking-wide text-zinc-500 uppercase">by BearifiedCo</p>
           </div>
         </div>
 
