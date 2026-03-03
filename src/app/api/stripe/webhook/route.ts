@@ -1,6 +1,8 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { upsertInstance, updateInstanceStatus } from '@/lib/supabase';
+import { provisionGateway } from '@/lib/fly';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -23,7 +25,47 @@ export async function POST(req: Request) {
     const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
     if (event.type === 'checkout.session.completed') {
-      console.log('Stripe webhook checkout.session.completed:', event.data.object);
+      const checkoutSession = event.data.object as Stripe.Checkout.Session;
+      const userEmail =
+        checkoutSession.customer_email ??
+        checkoutSession.metadata?.userEmail ??
+        null;
+
+      if (userEmail) {
+        try {
+          await upsertInstance({
+            user_id: userEmail.toLowerCase(),
+            user_email: userEmail.toLowerCase(),
+            status: 'provisioning',
+          });
+
+          // Fire-and-forget — never block the webhook response
+          provisionGateway({
+            userId: userEmail.toLowerCase(),
+            userEmail: userEmail.toLowerCase(),
+          })
+            .then(async (result) => {
+              await updateInstanceStatus(userEmail.toLowerCase(), 'running', {
+                fly_app_name: result.appName,
+                fly_machine_id: result.machineId,
+                fly_volume_id: result.volumeId,
+                gateway_url: result.gatewayUrl,
+                gateway_token: result.gatewayToken,
+                setup_password: result.setupPassword,
+              });
+            })
+            .catch(async (err) => {
+              console.error('Gateway provisioning failed:', err);
+              await updateInstanceStatus(userEmail.toLowerCase(), 'error', {
+                error_message: err instanceof Error ? err.message : 'Provisioning failed',
+              }).catch(() => {});
+            });
+        } catch (err) {
+          console.error('Failed to initiate provisioning:', err);
+        }
+      }
+
+      console.log('Stripe webhook checkout.session.completed:', checkoutSession.id);
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
