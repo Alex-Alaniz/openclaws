@@ -233,7 +233,9 @@ export default function ToolkitsPage() {
   const [pendingConnectKey, setPendingConnectKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const isAdvancingRef = useRef(false);
+  const hoveredCardRef = useRef<HTMLElement | null>(null);
 
   const fetchToolkits = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (silent) setIsRefreshing(true); else setIsLoading(true);
@@ -317,6 +319,58 @@ export default function ToolkitsPage() {
     }
   }, [fetchToolkits]);
 
+  const PROXIMITY_PX = 48;
+
+  const handleGridPointerMove = useCallback((e: React.PointerEvent) => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const cards = grid.querySelectorAll<HTMLElement>('.toolkit-card');
+    const mx = e.clientX;
+    const my = e.clientY;
+
+    for (const card of cards) {
+      // Skip the card the cursor is directly over
+      if (card === hoveredCardRef.current) continue;
+
+      const rect = card.getBoundingClientRect();
+      const dx = Math.max(rect.left - mx, 0, mx - rect.right);
+      const dy = Math.max(rect.top - my, 0, my - rect.bottom);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < PROXIMITY_PX && dist > 0) {
+        const strength = 1 - dist / PROXIMITY_PX;
+        const opacity = (strength * 0.55).toFixed(3);
+
+        // Clamp pointer to card's nearest edge
+        const cx = Math.max(rect.left, Math.min(mx, rect.right));
+        const cy = Math.max(rect.top, Math.min(my, rect.bottom));
+        const rx = ((cx - rect.left) / rect.width - 0.5) * 2;
+        const ry = ((cy - rect.top) / rect.height - 0.5) * 2;
+        const angle = Math.atan2(ry, rx) * (180 / Math.PI) + 180;
+
+        card.style.setProperty('--glow-opacity', opacity);
+        card.style.setProperty('--pointer-x', rx.toFixed(3));
+        card.style.setProperty('--pointer-y', ry.toFixed(3));
+        card.style.setProperty('--border-angle', `${angle.toFixed(1)}deg`);
+      } else if (dist >= PROXIMITY_PX) {
+        card.style.setProperty('--glow-opacity', '0');
+      }
+    }
+  }, []);
+
+  const handleGridPointerLeave = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const cards = grid.querySelectorAll<HTMLElement>('.toolkit-card');
+    for (const card of cards) {
+      if (card === hoveredCardRef.current) continue;
+      card.style.setProperty('--glow-opacity', '0');
+      card.style.setProperty('--pointer-x', '0');
+      card.style.setProperty('--pointer-y', '0');
+      card.style.setProperty('--border-angle', '130deg');
+    }
+  }, []);
+
   return (
     <div className="h-full overflow-y-auto bg-[#0a0a0a] text-white">
       <svg className="hidden" aria-hidden="true">
@@ -369,7 +423,7 @@ export default function ToolkitsPage() {
           <div className="rounded-md border border-white/10 bg-[#111111] px-4 py-8 text-center text-sm text-zinc-400">Loading toolkits...</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div ref={gridRef} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" onPointerMove={handleGridPointerMove} onPointerLeave={handleGridPointerLeave}>
               {visibleToolkits.map((toolkit) => {
                 const isConnecting = pendingConnectKey === toolkit.key;
                 const logoUrl = toolkit.logoUrl || getLogoUrl(toolkit.slug);
@@ -382,6 +436,11 @@ export default function ToolkitsPage() {
                       ['--pointer-x' as string]: '0',
                       ['--pointer-y' as string]: '0',
                       ['--border-angle' as string]: '130deg',
+                      ['--glow-opacity' as string]: '0',
+                    }}
+                    onMouseEnter={(e) => {
+                      hoveredCardRef.current = e.currentTarget;
+                      e.currentTarget.style.setProperty('--glow-opacity', '0.85');
                     }}
                     onMouseMove={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
@@ -393,16 +452,20 @@ export default function ToolkitsPage() {
                       e.currentTarget.style.setProperty('--pointer-x', cx.toFixed(3));
                       e.currentTarget.style.setProperty('--pointer-y', cy.toFixed(3));
                       e.currentTarget.style.setProperty('--border-angle', `${angle.toFixed(1)}deg`);
+                      e.currentTarget.style.setProperty('--glow-opacity', '0.85');
                     }}
                     onMouseLeave={(e) => {
+                      hoveredCardRef.current = null;
                       e.currentTarget.style.setProperty('--pointer-x', '0');
                       e.currentTarget.style.setProperty('--pointer-y', '0');
                       e.currentTarget.style.setProperty('--border-angle', '130deg');
+                      e.currentTarget.style.setProperty('--glow-opacity', '0');
                     }}
                   >
                     {/* Blurred logo follows pointer — ambient glow behind content */}
                     <div
-                      className="pointer-events-none absolute inset-[-2px] overflow-hidden rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-[0.85]"
+                      className="pointer-events-none absolute inset-[-2px] overflow-hidden rounded-xl transition-opacity duration-300"
+                      style={{ opacity: 'var(--glow-opacity, 0)' }}
                       aria-hidden="true"
                     >
                       <div
@@ -419,7 +482,7 @@ export default function ToolkitsPage() {
 
                     {/* Content — background fades on hover to reveal blurred logo colors */}
                     <div className="relative z-[1] h-full rounded-[10px]">
-                      <div className="absolute inset-0 rounded-[10px] bg-[#111111] transition-opacity duration-300 group-hover:opacity-[0.4]" />
+                      <div className="absolute inset-0 rounded-[10px] bg-[#111111] transition-opacity duration-300" style={{ opacity: 'calc(1 - var(--glow-opacity, 0) * 0.706)' }} />
                       <div className="relative z-[1] flex h-full flex-col items-center justify-center gap-2.5 p-5">
                         {toolkit.status === 'connect' ? (
                           <div className="absolute right-3 top-3 z-[1]">
@@ -443,8 +506,9 @@ export default function ToolkitsPage() {
 
                     {/* Brand border glow — gradient clipped to 2px ring via mask-composite */}
                     <div
-                      className="pointer-events-none absolute inset-[-2px] z-[2] rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-[0.85]"
+                      className="pointer-events-none absolute inset-[-2px] z-[2] rounded-xl transition-opacity duration-300"
                       style={{
+                        opacity: 'var(--glow-opacity, 0)',
                         border: '2px solid transparent',
                         background: toolkit.borderGradient,
                         maskImage: 'linear-gradient(#fff, #fff), linear-gradient(#fff, #fff)',
