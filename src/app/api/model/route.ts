@@ -1,0 +1,71 @@
+import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { authOptions } from '@/lib/auth';
+import { getInstanceByUserId, getSupabase } from '@/lib/supabase';
+import { updateMachineEnv } from '@/lib/fly';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+function getUserEmail(session: { user?: { email?: string | null } }): string | null {
+  return session.user?.email?.trim().toLowerCase() ?? null;
+}
+
+// Get current model + ai_mode
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  const email = getUserEmail(session ?? {});
+  if (!session?.user || !email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const instance = await getInstanceByUserId(email);
+    return NextResponse.json({
+      selectedModel: instance?.selected_model ?? 'claude-sonnet-4-20250514',
+      aiMode: instance?.ai_mode ?? 'managed',
+    });
+  } catch (error) {
+    console.error('Failed to get model:', error);
+    return NextResponse.json({ error: 'Failed to get model' }, { status: 500 });
+  }
+}
+
+// Set model selection
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  const email = getUserEmail(session ?? {});
+  if (!session?.user || !email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await req.json().catch(() => ({})) as { model?: string };
+  if (!body.model || typeof body.model !== 'string') {
+    return NextResponse.json({ error: 'model is required' }, { status: 400 });
+  }
+
+  try {
+    // Update in DB
+    await getSupabase()
+      .from('instances')
+      .update({ selected_model: body.model, updated_at: new Date().toISOString() })
+      .eq('user_id', email);
+
+    // Push to running gateway
+    const instance = await getInstanceByUserId(email);
+    if (instance?.status === 'running' && instance.fly_app_name && instance.fly_machine_id) {
+      try {
+        await updateMachineEnv(instance.fly_app_name, instance.fly_machine_id, {
+          SELECTED_MODEL: body.model,
+        });
+      } catch (err) {
+        console.error('Failed to push model to gateway:', err);
+      }
+    }
+
+    return NextResponse.json({ selectedModel: body.model });
+  } catch (error) {
+    console.error('Failed to set model:', error);
+    return NextResponse.json({ error: 'Failed to set model' }, { status: 500 });
+  }
+}

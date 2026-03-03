@@ -2,6 +2,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export type InstanceStatus = 'provisioning' | 'running' | 'stopped' | 'error' | 'deleting';
 
+export type AiMode = 'managed' | 'byokey' | 'byoauth';
+
 export type Instance = {
   id: string;
   user_id: string;
@@ -15,6 +17,8 @@ export type Instance = {
   setup_password: string | null;
   status: InstanceStatus;
   error_message: string | null;
+  selected_model: string;
+  ai_mode: AiMode;
   created_at: string;
   updated_at: string;
 };

@@ -11,9 +11,30 @@ const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || '';
 const SETUP_PASSWORD = process.env.SETUP_PASSWORD || '';
 const STATE_DIR = process.env.OPENCLAW_STATE_DIR || '/data/state';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const ANTHROPIC_AUTH_TOKEN = process.env.ANTHROPIC_AUTH_TOKEN || '';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const SELECTED_MODEL = process.env.SELECTED_MODEL || 'claude-sonnet-4-20250514';
 
 // Ensure state directory exists
 mkdirSync(STATE_DIR, { recursive: true });
+
+// --- Provider detection ---
+
+type Provider = 'anthropic' | 'openai';
+
+function detectProvider(): Provider | null {
+  if (ANTHROPIC_AUTH_TOKEN || ANTHROPIC_API_KEY) return 'anthropic';
+  if (OPENAI_API_KEY) return 'openai';
+  return null;
+}
+
+function isAnthropicModel(model: string): boolean {
+  return model.startsWith('claude-');
+}
+
+function isOpenAIModel(model: string): boolean {
+  return model.startsWith('gpt-') || model.startsWith('o1') || model.startsWith('o3');
+}
 
 // --- Auth middleware ---
 
@@ -52,11 +73,63 @@ function saveConversation(id: string, messages: Message[]): void {
   writeFileSync(getConversationPath(id), JSON.stringify(messages, null, 2));
 }
 
+// --- Anthropic chat ---
+
+async function chatAnthropic(messages: Message[], model: string): Promise<{ text: string; usage: { input_tokens: number; output_tokens: number } }> {
+  let client: Anthropic;
+
+  if (ANTHROPIC_AUTH_TOKEN) {
+    // OAuth token from `claude setup-token`
+    client = new Anthropic({
+      authToken: ANTHROPIC_AUTH_TOKEN,
+      apiKey: null as unknown as string,
+      defaultHeaders: { 'anthropic-beta': 'oauth-2025-04-20' },
+    });
+  } else {
+    client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+  }
+
+  const response = await client.messages.create({
+    model,
+    max_tokens: 4096,
+    system: 'You are OpenClaw, a helpful AI assistant. You have persistent memory across conversations and can help with a wide range of tasks.',
+    messages,
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  return { text, usage: { input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens } };
+}
+
+// --- OpenAI chat ---
+
+async function chatOpenAI(messages: Message[], model: string): Promise<{ text: string; usage: { input_tokens: number; output_tokens: number } }> {
+  const { default: OpenAI } = await import('openai');
+  const client = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+  const response = await client.chat.completions.create({
+    model,
+    max_tokens: 4096,
+    messages: [
+      { role: 'system', content: 'You are OpenClaw, a helpful AI assistant. You have persistent memory across conversations and can help with a wide range of tasks.' },
+      ...messages,
+    ],
+  });
+
+  const text = response.choices[0]?.message?.content ?? '';
+  return {
+    text,
+    usage: {
+      input_tokens: response.usage?.prompt_tokens ?? 0,
+      output_tokens: response.usage?.completion_tokens ?? 0,
+    },
+  };
+}
+
 // --- Routes ---
 
 // Health check
 app.get('/healthz', (_req, res) => {
-  res.json({ status: 'ok', version: '0.1.0' });
+  res.json({ status: 'ok', version: '0.2.0' });
 });
 
 // Setup verification (one-time setup check)
@@ -71,9 +144,10 @@ app.post('/setup/verify', (req, res) => {
 
 // Chat endpoint
 app.post('/api/chat', requireToken, async (req, res) => {
-  const { message, conversationId = 'default' } = req.body as {
+  const { message, conversationId = 'default', model: requestModel } = req.body as {
     message?: string;
     conversationId?: string;
+    model?: string;
   };
 
   if (!message || typeof message !== 'string') {
@@ -81,40 +155,43 @@ app.post('/api/chat', requireToken, async (req, res) => {
     return;
   }
 
-  if (!ANTHROPIC_API_KEY) {
-    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on gateway' });
+  const provider = detectProvider();
+  if (!provider) {
+    res.status(500).json({ error: 'No AI provider configured. Add an API key in Settings.' });
     return;
   }
+
+  const model = requestModel || SELECTED_MODEL;
 
   const history = loadConversation(conversationId);
   history.push({ role: 'user', content: message });
 
   try {
-    const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system:
-        'You are OpenClaw, a helpful AI assistant. You have persistent memory across conversations and can help with a wide range of tasks.',
-      messages: history,
-    });
+    let result: { text: string; usage: { input_tokens: number; output_tokens: number } };
 
-    const assistantMessage =
-      response.content[0].type === 'text' ? response.content[0].text : '';
-    history.push({ role: 'assistant', content: assistantMessage });
+    // Route to the right provider based on model
+    if (isOpenAIModel(model) && OPENAI_API_KEY) {
+      result = await chatOpenAI(history, model);
+    } else if (isAnthropicModel(model) && (ANTHROPIC_AUTH_TOKEN || ANTHROPIC_API_KEY)) {
+      result = await chatAnthropic(history, model);
+    } else if (provider === 'openai') {
+      result = await chatOpenAI(history, model);
+    } else {
+      result = await chatAnthropic(history, model);
+    }
+
+    history.push({ role: 'assistant', content: result.text });
     saveConversation(conversationId, history);
 
     res.json({
-      message: assistantMessage,
+      message: result.text,
       conversationId,
-      usage: {
-        input_tokens: response.usage.input_tokens,
-        output_tokens: response.usage.output_tokens,
-      },
+      model,
+      provider,
+      usage: result.usage,
     });
   } catch (err) {
     console.error('Chat error:', err);
-    // Remove the failed user message from history
     history.pop();
     const errorMessage = err instanceof Error ? err.message : 'Chat request failed';
     res.status(500).json({ error: errorMessage });
@@ -166,18 +243,27 @@ app.delete('/api/conversations/:id', requireToken, (req, res) => {
 
 // Gateway info
 app.get('/api/info', requireToken, (_req, res) => {
+  const provider = detectProvider();
   res.json({
     name: 'OpenClaw Gateway',
-    version: '0.1.0',
-    features: ['chat', 'persistent-memory', 'conversation-management'],
-    model: 'claude-sonnet-4-20250514',
+    version: '0.2.0',
+    features: ['chat', 'persistent-memory', 'conversation-management', 'multi-provider'],
+    model: SELECTED_MODEL,
+    provider,
+    hasAnthropicKey: !!ANTHROPIC_API_KEY,
+    hasAnthropicOAuth: !!ANTHROPIC_AUTH_TOKEN,
+    hasOpenAIKey: !!OPENAI_API_KEY,
   });
 });
 
 // --- Start server ---
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`OpenClaw Gateway listening on port ${PORT}`);
+  console.log(`OpenClaw Gateway v0.2.0 listening on port ${PORT}`);
   console.log(`State directory: ${STATE_DIR}`);
-  console.log(`Anthropic API: ${ANTHROPIC_API_KEY ? 'configured' : 'NOT configured'}`);
+  console.log(`Selected model: ${SELECTED_MODEL}`);
+  console.log(`Provider: ${detectProvider() ?? 'NONE'}`);
+  console.log(`Anthropic API key: ${ANTHROPIC_API_KEY ? 'configured' : 'no'}`);
+  console.log(`Anthropic OAuth: ${ANTHROPIC_AUTH_TOKEN ? 'configured' : 'no'}`);
+  console.log(`OpenAI API key: ${OPENAI_API_KEY ? 'configured' : 'no'}`);
 });

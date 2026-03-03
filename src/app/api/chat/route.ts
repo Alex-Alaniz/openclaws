@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No running gateway instance' }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({})) as { message?: string; conversationId?: string };
+  const body = await req.json().catch(() => ({})) as { message?: string; conversationId?: string; model?: string };
   if (!body.message || typeof body.message !== 'string') {
     return NextResponse.json({ error: 'message is required' }, { status: 400 });
   }
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         message: body.message,
         conversationId: body.conversationId ?? 'default',
+        ...(body.model ? { model: body.model } : {}),
       }),
     });
 

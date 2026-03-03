@@ -157,12 +157,43 @@ export async function startMachine(appName: string, machineId: string): Promise<
   await flyFetch(`/apps/${appName}/machines/${machineId}/start`, { method: 'POST' });
 }
 
+// --- Machine env update ---
+
+export async function updateMachineEnv(
+  appName: string,
+  machineId: string,
+  envUpdates: Record<string, string>,
+): Promise<void> {
+  // Fetch current machine config
+  const machine = await flyFetch<{ config: { env?: Record<string, string>; [key: string]: unknown } }>(
+    `/apps/${appName}/machines/${machineId}`,
+  );
+
+  const currentEnv = machine.config.env ?? {};
+  const mergedEnv = { ...currentEnv, ...envUpdates };
+
+  // Update machine with merged env
+  await flyFetch(`/apps/${appName}/machines/${machineId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      config: {
+        ...machine.config,
+        env: mergedEnv,
+      },
+    }),
+  });
+}
+
 // --- Provisioning orchestrator ---
 
 export async function provisionGateway(opts: {
   userId: string;
   userEmail: string;
   region?: string;
+  anthropicApiKey?: string;
+  anthropicAuthToken?: string;
+  openaiApiKey?: string;
+  selectedModel?: string;
 }): Promise<ProvisionResult> {
   const prefix = getAppPrefix();
   const slug = slugify(opts.userEmail);
@@ -201,7 +232,14 @@ export async function provisionGateway(opts: {
         OPENCLAW_STATE_DIR: '/data/state',
         OPENCLAW_WORKSPACE_DIR: '/data/workspace',
         OPENCLAW_GATEWAY_TOKEN: gatewayToken,
-        ...(process.env.ANTHROPIC_API_KEY ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY } : {}),
+        ...(opts.anthropicApiKey ? { ANTHROPIC_API_KEY: opts.anthropicApiKey } : {}),
+        ...(opts.anthropicAuthToken ? { ANTHROPIC_AUTH_TOKEN: opts.anthropicAuthToken } : {}),
+        ...(opts.openaiApiKey ? { OPENAI_API_KEY: opts.openaiApiKey } : {}),
+        ...(opts.selectedModel ? { SELECTED_MODEL: opts.selectedModel } : {}),
+        // Fallback to platform key if no user key provided
+        ...(!opts.anthropicApiKey && !opts.anthropicAuthToken && process.env.ANTHROPIC_API_KEY
+          ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY }
+          : {}),
       },
       volumeId: volume.id,
     });

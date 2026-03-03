@@ -12,8 +12,24 @@ type InstanceData = {
   gateway_token: string | null;
   status: string;
   error_message: string | null;
+  selected_model: string;
+  ai_mode: string;
   created_at: string;
 };
+
+type ProviderKeyInfo = {
+  provider: string;
+  keyType: string;
+  keySuffix: string;
+  validated: boolean;
+  validatedAt: string | null;
+};
+
+const MODELS = [
+  { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4', provider: 'anthropic' },
+  { id: 'claude-opus-4-20250514', label: 'Claude Opus 4', provider: 'anthropic' },
+  { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
+] as const;
 
 export default function SettingsPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -29,6 +45,18 @@ export default function SettingsPage() {
   const [isDestroying, setIsDestroying] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
 
+  // Model state
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514');
+  const [modelLoading, setModelLoading] = useState(false);
+
+  // Provider keys state
+  const [providerKeys, setProviderKeys] = useState<ProviderKeyInfo[]>([]);
+  const [keyInput, setKeyInput] = useState('');
+  const [keySaving, setKeySaving] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [validatingProvider, setValidatingProvider] = useState<string | null>(null);
+  const [aiMode, setAiMode] = useState('managed');
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setUpgraded(params.get('upgraded') === 'true');
@@ -41,6 +69,8 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error('Failed to fetch instance');
       const data = (await res.json()) as { instance: InstanceData | null };
       setInstance(data.instance);
+      if (data.instance?.selected_model) setSelectedModel(data.instance.selected_model);
+      if (data.instance?.ai_mode) setAiMode(data.instance.ai_mode);
       setInstanceError(null);
     } catch (err) {
       setInstanceError(err instanceof Error ? err.message : 'Failed to load instance');
@@ -49,9 +79,34 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const fetchKeys = useCallback(async () => {
+    try {
+      const res = await fetch('/api/provider-keys');
+      if (!res.ok) return;
+      const data = (await res.json()) as { keys: ProviderKeyInfo[] };
+      setProviderKeys(data.keys);
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
+  const fetchModel = useCallback(async () => {
+    try {
+      const res = await fetch('/api/model');
+      if (!res.ok) return;
+      const data = (await res.json()) as { selectedModel: string; aiMode: string };
+      setSelectedModel(data.selectedModel);
+      setAiMode(data.aiMode);
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
   useEffect(() => {
     fetchInstance();
-  }, [fetchInstance]);
+    fetchKeys();
+    fetchModel();
+  }, [fetchInstance, fetchKeys, fetchModel]);
 
   // Poll while provisioning
   useEffect(() => {
@@ -93,6 +148,76 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSelectModel = async (modelId: string) => {
+    setModelLoading(true);
+    try {
+      const res = await fetch('/api/model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: modelId }),
+      });
+      if (!res.ok) throw new Error('Failed to update model');
+      setSelectedModel(modelId);
+    } catch (err) {
+      console.error('Model selection error:', err);
+    } finally {
+      setModelLoading(false);
+    }
+  };
+
+  const handleSaveKey = async () => {
+    if (!keyInput.trim()) return;
+    setKeySaving(true);
+    setKeyError(null);
+    try {
+      const res = await fetch('/api/provider-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: keyInput.trim() }),
+      });
+      const data = (await res.json()) as { key?: ProviderKeyInfo; aiMode?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Failed to save key');
+      setKeyInput('');
+      if (data.aiMode) setAiMode(data.aiMode);
+      await fetchKeys();
+    } catch (err) {
+      setKeyError(err instanceof Error ? err.message : 'Failed to save key');
+    } finally {
+      setKeySaving(false);
+    }
+  };
+
+  const handleDeleteKey = async (provider: string) => {
+    try {
+      const res = await fetch(`/api/provider-keys?provider=${provider}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete key');
+      await fetchKeys();
+      await fetchModel();
+    } catch (err) {
+      console.error('Delete key error:', err);
+    }
+  };
+
+  const handleValidateKey = async (provider: string) => {
+    setValidatingProvider(provider);
+    try {
+      const res = await fetch('/api/provider-keys/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider }),
+      });
+      await fetchKeys();
+      const data = (await res.json()) as { valid: boolean; error?: string };
+      if (!data.valid) {
+        setKeyError(data.error ?? 'Validation failed');
+      }
+    } catch {
+      setKeyError('Validation request failed');
+    } finally {
+      setValidatingProvider(null);
+    }
+  };
+
   const handleUpgrade = async () => {
     try {
       setIsRedirecting(true);
@@ -119,22 +244,132 @@ export default function SettingsPage() {
     return colors[status] ?? 'bg-zinc-400';
   };
 
+  // Detect what the user is pasting
+  const detectedKeyType = keyInput.trim()
+    ? keyInput.trim().startsWith('sk-ant-oat01-') ? 'Anthropic OAuth Token'
+    : keyInput.trim().startsWith('sk-ant-api') ? 'Anthropic API Key'
+    : keyInput.trim().startsWith('sk-') ? 'OpenAI API Key'
+    : keyInput.trim().startsWith('AIza') ? 'Google API Key'
+    : null
+    : null;
+
+  const hasProviderKey = (provider: string) => providerKeys.some((k) => k.provider === provider);
+
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-4">
       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#111111] px-4 py-3">
         <h1 className="text-sm font-semibold tracking-wide text-white">Settings</h1>
-        <p className="text-xs text-zinc-400">Configure model, channel, and billing</p>
+        <p className="text-xs text-zinc-400">Configure model, keys, and billing</p>
       </div>
 
+      {/* Model Selection */}
       <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
         <h2 className="mb-4 text-lg font-semibold">Model Selection</h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          {['Claude Opus 4.5', 'GPT-4o', 'Gemini 2.5'].map((model) => (
-            <button key={model} className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm hover:bg-white/10">{model}</button>
-          ))}
+          {MODELS.map((model) => {
+            const isSelected = selectedModel === model.id;
+            const needsKey = model.provider !== 'anthropic' && !hasProviderKey(model.provider);
+            return (
+              <button
+                key={model.id}
+                onClick={() => !needsKey && handleSelectModel(model.id)}
+                disabled={modelLoading || needsKey}
+                className={`rounded-lg border px-4 py-3 text-sm transition-colors ${
+                  isSelected
+                    ? 'border-[#DC2626] bg-[#DC2626]/10 text-white'
+                    : needsKey
+                      ? 'cursor-not-allowed border-white/5 bg-black/20 text-zinc-600'
+                      : 'border-white/10 bg-black/30 text-zinc-200 hover:bg-white/10'
+                }`}
+              >
+                <span>{model.label}</span>
+                {needsKey ? (
+                  <span className="mt-1 block text-xs text-zinc-600">Add API key below</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
+          <span>Mode:</span>
+          <span className={`rounded px-2 py-0.5 ${
+            aiMode === 'byoauth' ? 'bg-purple-500/20 text-purple-300'
+            : aiMode === 'byokey' ? 'bg-blue-500/20 text-blue-300'
+            : 'bg-zinc-500/20 text-zinc-400'
+          }`}>
+            {aiMode === 'byoauth' ? 'BYO OAuth' : aiMode === 'byokey' ? 'BYO Key' : 'Platform Managed'}
+          </span>
         </div>
       </section>
 
+      {/* API Keys */}
+      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+        <h2 className="mb-4 text-lg font-semibold">API Keys</h2>
+
+        {/* Existing keys */}
+        {providerKeys.length > 0 ? (
+          <div className="mb-4 space-y-2">
+            {providerKeys.map((key) => (
+              <div key={key.provider} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className={`h-2 w-2 rounded-full ${key.validated ? 'bg-emerald-400' : 'bg-yellow-400'}`} />
+                  <div>
+                    <span className="text-sm font-medium capitalize text-zinc-200">{key.provider}</span>
+                    <span className="ml-2 text-xs text-zinc-500">
+                      {key.keyType === 'oauth_token' ? 'OAuth' : 'API Key'} {key.keySuffix}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleValidateKey(key.provider)}
+                    disabled={validatingProvider === key.provider}
+                    className="text-xs text-zinc-400 hover:text-white disabled:opacity-50"
+                  >
+                    {validatingProvider === key.provider ? 'Testing...' : 'Test'}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteKey(key.provider)}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Add key input */}
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => { setKeyInput(e.target.value); setKeyError(null); }}
+              placeholder="Paste API key or OAuth token (sk-ant-..., sk-...)"
+              className="flex-1 rounded-lg border border-white/10 bg-black/30 px-4 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
+            />
+            <button
+              onClick={handleSaveKey}
+              disabled={keySaving || !keyInput.trim()}
+              className="rounded-lg bg-[#DC2626] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+            >
+              {keySaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+          {detectedKeyType ? (
+            <p className="text-xs text-zinc-400">Detected: <span className="text-zinc-300">{detectedKeyType}</span></p>
+          ) : null}
+          {keyError ? <p className="text-xs text-red-400">{keyError}</p> : null}
+          <p className="text-xs text-zinc-600">
+            Anthropic: <code className="text-zinc-500">sk-ant-api...</code> (Console) or <code className="text-zinc-500">sk-ant-oat01-...</code> (OAuth via <code className="text-zinc-500">claude setup-token</code>).
+            OpenAI: <code className="text-zinc-500">sk-...</code>
+          </p>
+        </div>
+      </section>
+
+      {/* Channel Configuration */}
       <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
         <h2 className="mb-4 text-lg font-semibold">Channel Configuration</h2>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -152,7 +387,6 @@ export default function SettingsPage() {
           <p className="text-sm text-zinc-400">Loading instance status...</p>
         ) : instance ? (
           <div className="space-y-3">
-            {/* Status indicator */}
             <div className="flex items-center gap-2">
               <div className={`h-2 w-2 rounded-full ${statusDot(instance.status)}`} />
               <span className="text-sm font-medium capitalize text-zinc-200">{instance.status}</span>
@@ -161,7 +395,6 @@ export default function SettingsPage() {
               ) : null}
             </div>
 
-            {/* Gateway URL */}
             {instance.gateway_url && instance.status === 'running' ? (
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="mb-1 text-xs text-zinc-500">Gateway URL</p>
@@ -176,7 +409,6 @@ export default function SettingsPage() {
               </div>
             ) : null}
 
-            {/* Gateway Token */}
             {instance.gateway_token && instance.status === 'running' ? (
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="mb-1 text-xs text-zinc-500">Gateway Token</p>
@@ -198,17 +430,14 @@ export default function SettingsPage() {
               </div>
             ) : null}
 
-            {/* Provisioning message */}
             {instance.status === 'provisioning' ? (
               <p className="text-sm text-yellow-400">Provisioning your gateway... This may take up to 30 seconds.</p>
             ) : null}
 
-            {/* Error message */}
             {instance.error_message ? (
               <p className="text-sm text-red-400">{instance.error_message}</p>
             ) : null}
 
-            {/* Actions */}
             <div className="flex gap-2 pt-2">
               {instance.status === 'error' ? (
                 <button

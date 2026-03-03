@@ -8,6 +8,7 @@ import {
   deleteInstanceByUserId,
 } from '@/lib/supabase';
 import { provisionGateway, destroyGateway } from '@/lib/fly';
+import { listProviderKeys, getDecryptedKey } from '@/lib/provider-keys';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -71,12 +72,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to initiate provisioning' }, { status: 500 });
   }
 
+  // Fetch user's provider keys to pass to gateway
+  let anthropicApiKey: string | undefined;
+  let anthropicAuthToken: string | undefined;
+  let openaiApiKey: string | undefined;
+
+  try {
+    const keys = await listProviderKeys(email);
+    for (const keyInfo of keys) {
+      const decrypted = await getDecryptedKey(email, keyInfo.provider);
+      if (!decrypted) continue;
+
+      if (keyInfo.provider === 'anthropic' && keyInfo.keyType === 'oauth_token') {
+        anthropicAuthToken = decrypted.key;
+      } else if (keyInfo.provider === 'anthropic') {
+        anthropicApiKey = decrypted.key;
+      } else if (keyInfo.provider === 'openai') {
+        openaiApiKey = decrypted.key;
+      }
+    }
+  } catch {
+    // Non-fatal — provision without user keys
+  }
+
   // Provision on Fly.io
   try {
     const result = await provisionGateway({
       userId: email,
       userEmail: email,
       region,
+      anthropicApiKey,
+      anthropicAuthToken,
+      openaiApiKey,
     });
 
     await updateInstanceStatus(email, 'running', {
