@@ -1,8 +1,20 @@
 import type { NextAuthOptions } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import TwitterProvider from 'next-auth/providers/twitter';
 
-const providers: NextAuthOptions['providers'] = [];
+const providers: NextAuthOptions['providers'] = [
+  Credentials({
+    name: 'Email',
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email) return null;
+      return { id: credentials.email, email: credentials.email, name: credentials.email.split('@')[0] };
+    },
+  }),
+];
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   providers.push(

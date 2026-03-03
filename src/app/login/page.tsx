@@ -80,6 +80,7 @@ export default function LoginPage() {
 
             <button
               type="button"
+              onClick={() => signIn('credentials', { email, callbackUrl: '/dashboard' })}
               className="h-[52px] w-full rounded-[14px] border border-white/[0.12] bg-white/[0.05] px-4 text-[15px] font-bold text-white transition-all hover:bg-white/[0.1] active:scale-[0.99]"
             >
               Continue with email
