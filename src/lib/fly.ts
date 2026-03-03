@@ -194,13 +194,14 @@ export async function provisionGateway(opts: {
     machine = await createMachine(appName, {
       name: `gw-${slug}`,
       region,
-      image: 'ghcr.io/openclaw/openclaw:latest',
+      image: 'ghcr.io/alex-alaniz/openclaw-gateway:latest',
       env: {
         PORT: '8080',
         SETUP_PASSWORD: setupPassword,
         OPENCLAW_STATE_DIR: '/data/state',
         OPENCLAW_WORKSPACE_DIR: '/data/workspace',
         OPENCLAW_GATEWAY_TOKEN: gatewayToken,
+        ...(process.env.ANTHROPIC_API_KEY ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY } : {}),
       },
       volumeId: volume.id,
     });
