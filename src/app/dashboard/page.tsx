@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -18,18 +19,23 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [instance, setInstance] = useState<InstanceData | null>(null);
   const [instanceLoading, setInstanceLoading] = useState(true);
+  const [subActive, setSubActive] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canSend = draft.trim().length > 0 && !isLoading;
 
-  // Fetch instance status
+  // Fetch instance + subscription status
   useEffect(() => {
     fetch('/api/instance')
       .then((r) => r.json())
       .then((data: { instance: InstanceData | null }) => setInstance(data.instance))
       .catch(() => {})
       .finally(() => setInstanceLoading(false));
+    fetch('/api/subscription')
+      .then((r) => r.json())
+      .then((data: { active: boolean }) => setSubActive(data.active))
+      .catch(() => {});
   }, []);
 
   // Auto-scroll to bottom
@@ -121,14 +127,63 @@ export default function DashboardPage() {
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <div className="text-center">
-                <h2 className="mb-2 text-lg font-semibold text-zinc-200">OpenClaw</h2>
-                <p className="text-sm text-zinc-500">
-                  {gatewayReady
-                    ? 'Send a message to start chatting with your AI assistant.'
-                    : 'Deploy a gateway in Settings to start chatting.'}
-                </p>
-              </div>
+              {gatewayReady ? (
+                <div className="text-center">
+                  <h2 className="mb-2 text-lg font-semibold text-zinc-200">OpenClaw</h2>
+                  <p className="text-sm text-zinc-500">Send a message to start chatting with your AI assistant.</p>
+                </div>
+              ) : (
+                <div className="w-full max-w-md space-y-4 px-4">
+                  <div className="text-center">
+                    <img src="/openclaw.svg" alt="OpenClaws" className="mx-auto mb-3 h-10 w-10 opacity-60" />
+                    <h2 className="text-xl font-bold text-zinc-100">Welcome to OpenClaws</h2>
+                    <p className="mt-1 text-sm text-zinc-500">Get your AI assistant running in 3 steps</p>
+                  </div>
+                  <div className="space-y-3">
+                    <div className={`flex items-start gap-3 rounded-xl border p-4 ${subActive ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 bg-white/[0.03]'}`}>
+                      <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${subActive ? 'bg-emerald-500 text-black' : 'bg-zinc-700 text-zinc-300'}`}>
+                        {subActive ? '✓' : '1'}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold ${subActive ? 'text-emerald-300' : 'text-zinc-200'}`}>
+                          {subActive ? 'Subscribed' : 'Subscribe to OpenClaws Pro'}
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                          {subActive ? 'Your subscription is active.' : '$29/month — includes your dedicated AI gateway.'}
+                        </p>
+                        {!subActive ? (
+                          <Link href="/dashboard/settings" className="mt-2 inline-block rounded-lg bg-[#DC2626] px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
+                            Subscribe
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className={`flex items-start gap-3 rounded-xl border p-4 ${instance?.status === 'running' ? 'border-emerald-500/30 bg-emerald-500/5' : instance?.status === 'provisioning' ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-white/10 bg-white/[0.03]'}`}>
+                      <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${instance?.status === 'running' ? 'bg-emerald-500 text-black' : 'bg-zinc-700 text-zinc-300'}`}>
+                        {instance?.status === 'running' ? '✓' : '2'}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold ${instance?.status === 'running' ? 'text-emerald-300' : 'text-zinc-200'}`}>
+                          {instance?.status === 'running' ? 'Gateway deployed' : instance?.status === 'provisioning' ? 'Gateway deploying...' : 'Deploy your AI gateway'}
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                          {instance?.status === 'running' ? 'Your gateway is live and ready.' : instance?.status === 'provisioning' ? 'This usually takes about 30 seconds.' : 'Auto-deploys after subscription, or deploy manually in Settings.'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs font-bold text-zinc-300">3</div>
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-200">Connect your tools</p>
+                        <p className="mt-0.5 text-xs text-zinc-500">Browse 1000+ integrations — Gmail, Slack, GitHub, and more.</p>
+                        <Link href="/dashboard/toolkits" className="mt-2 inline-block text-xs font-semibold text-zinc-400 hover:text-zinc-200">
+                          Browse Toolkits →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="mx-auto max-w-2xl space-y-4">
@@ -207,7 +262,7 @@ export default function DashboardPage() {
                   <rect width="18" height="18" x="3" y="3" rx="2" />
                   <path d="M3 9h18M9 21V9" />
                 </svg>
-                <p>Tool calls will appear here</p>
+                <p>Tool execution — coming soon</p>
               </div>
             </div>
           </div>

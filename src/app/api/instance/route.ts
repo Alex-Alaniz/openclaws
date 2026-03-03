@@ -10,6 +10,7 @@ import {
 } from '@/lib/supabase';
 import { provisionGateway, destroyGateway } from '@/lib/fly';
 import { listProviderKeys, getDecryptedKey } from '@/lib/provider-keys';
+import { getSubscriptionStatus } from '@/lib/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,20 @@ export async function POST(req: Request) {
 
   const rl = rateLimit(`${email}:POST:/api/instance`, 3, 3_600_000);
   if (!rl.success) return rateLimitResponse(rl);
+
+  // Verify active subscription before allowing provisioning
+  try {
+    const sub = await getSubscriptionStatus(email);
+    if (!sub.active) {
+      return NextResponse.json(
+        { error: 'Active subscription required. Please upgrade to OpenClaws Pro.' },
+        { status: 403 },
+      );
+    }
+  } catch (err) {
+    console.error('Subscription check failed:', err);
+    // Allow provisioning if Stripe is unreachable — webhook already gates the primary flow
+  }
 
   // Check for existing instance
   try {

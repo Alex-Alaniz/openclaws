@@ -57,6 +57,10 @@ export default function SettingsPage() {
   const [validatingProvider, setValidatingProvider] = useState<string | null>(null);
   const [aiMode, setAiMode] = useState('managed');
 
+  // Subscription state
+  const [subActive, setSubActive] = useState<boolean | null>(null);
+  const [subStatus, setSubStatus] = useState<string>('none');
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setUpgraded(params.get('upgraded') === 'true');
@@ -102,11 +106,24 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const fetchSubscription = useCallback(async () => {
+    try {
+      const res = await fetch('/api/subscription');
+      if (!res.ok) return;
+      const data = (await res.json()) as { active: boolean; status: string };
+      setSubActive(data.active);
+      setSubStatus(data.status);
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
   useEffect(() => {
     fetchInstance();
     fetchKeys();
     fetchModel();
-  }, [fetchInstance, fetchKeys, fetchModel]);
+    fetchSubscription();
+  }, [fetchInstance, fetchKeys, fetchModel, fetchSubscription]);
 
   // Poll while provisioning
   useEffect(() => {
@@ -468,13 +485,17 @@ export default function SettingsPage() {
             <p className="mb-4 text-sm text-gray-400">
               Deploy your personal OpenClaw Gateway — a 24/7 AI assistant with 20+ messaging channels, persistent memory, and cron jobs.
             </p>
-            <button
-              onClick={handleProvision}
-              disabled={isProvisioning}
-              className="rounded-lg bg-[#DC2626] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isProvisioning ? 'Provisioning...' : 'Deploy Gateway'}
-            </button>
+            {subActive ? (
+              <button
+                onClick={handleProvision}
+                disabled={isProvisioning}
+                className="rounded-lg bg-[#DC2626] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isProvisioning ? 'Provisioning...' : 'Deploy Gateway'}
+              </button>
+            ) : (
+              <p className="text-sm text-zinc-500">Subscribe to OpenClaws Pro below to deploy your gateway.</p>
+            )}
           </div>
         )}
 
@@ -501,15 +522,35 @@ export default function SettingsPage() {
 
       <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
         <h2 className="mb-2 text-lg font-semibold">Billing</h2>
-        <p className="mb-1 text-sm text-gray-300">OpenClaws Pro - $29/month</p>
-        <p className="mb-4 text-sm text-gray-400">Unlock premium models and unlimited automation.</p>
-        <button
-          onClick={handleUpgrade}
-          disabled={isRedirecting}
-          className="rounded-lg bg-[#DC2626] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {isRedirecting ? 'Redirecting...' : 'Upgrade to Premium'}
-        </button>
+        {subActive ? (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-2 w-2 rounded-full bg-emerald-400" />
+              <p className="text-sm font-medium text-emerald-300">OpenClaws Pro — Active</p>
+            </div>
+            <p className="mb-4 text-sm text-gray-400">$29/month. Your subscription is active.</p>
+          </>
+        ) : subStatus === 'past_due' ? (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-2 w-2 rounded-full bg-yellow-400" />
+              <p className="text-sm font-medium text-yellow-300">Payment Past Due</p>
+            </div>
+            <p className="mb-4 text-sm text-red-400">Please update your payment method to avoid service interruption.</p>
+          </>
+        ) : (
+          <>
+            <p className="mb-1 text-sm text-gray-300">OpenClaws Pro — $29/month</p>
+            <p className="mb-4 text-sm text-gray-400">Subscribe to deploy your personal AI gateway with 1000+ integrations.</p>
+            <button
+              onClick={handleUpgrade}
+              disabled={isRedirecting}
+              className="rounded-lg bg-[#DC2626] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isRedirecting ? 'Redirecting...' : 'Subscribe — $29/month'}
+            </button>
+          </>
+        )}
         {upgraded ? <p className="mt-3 text-sm text-emerald-400">Subscription activated. Welcome to OpenClaws Pro.</p> : null}
         {cancelled ? <p className="mt-3 text-sm text-yellow-400">Checkout cancelled. You can try again anytime.</p> : null}
         {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}

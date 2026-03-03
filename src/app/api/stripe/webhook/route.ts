@@ -1,8 +1,8 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { upsertInstance, updateInstanceStatus } from '@/lib/supabase';
-import { provisionGateway } from '@/lib/fly';
+import { upsertInstance, updateInstanceStatus, getInstanceByUserId } from '@/lib/supabase';
+import { provisionGateway, destroyGateway } from '@/lib/fly';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -66,6 +66,47 @@ export async function POST(req: Request) {
       }
 
       console.log('Stripe webhook checkout.session.completed:', checkoutSession.id);
+    }
+
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as Stripe.Subscription;
+      const customer = await stripe.customers.retrieve(subscription.customer as string);
+      const email = 'email' in customer ? customer.email?.toLowerCase() : null;
+
+      if (email) {
+        console.log('Subscription cancelled for:', email);
+        const instance = await getInstanceByUserId(email);
+        if (instance && instance.fly_app_name && instance.fly_machine_id && instance.fly_volume_id) {
+          await updateInstanceStatus(email, 'deleting');
+          destroyGateway({
+            appName: instance.fly_app_name,
+            machineId: instance.fly_machine_id,
+            volumeId: instance.fly_volume_id,
+          })
+            .then(async () => {
+              const { deleteInstanceByUserId } = await import('@/lib/supabase');
+              await deleteInstanceByUserId(email);
+            })
+            .catch(async (err) => {
+              console.error('Gateway teardown on cancellation failed:', err);
+              await updateInstanceStatus(email, 'error', {
+                error_message: 'Subscription cancelled but gateway teardown failed',
+              }).catch(() => {});
+            });
+        }
+      }
+    }
+
+    if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const email = invoice.customer_email?.toLowerCase();
+
+      if (email) {
+        console.log('Payment failed for:', email);
+        await updateInstanceStatus(email, 'error', {
+          error_message: 'Payment failed. Please update your billing information.',
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({ received: true }, { status: 200 });

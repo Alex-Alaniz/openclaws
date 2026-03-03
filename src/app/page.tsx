@@ -483,6 +483,7 @@ export default function Home() {
               <span className="text-xs text-gray-400">by BearifiedCo</span>
             </div>
             <nav className="flex flex-wrap items-center gap-6 text-sm text-gray-500">
+              <Link href="/docs" className="hover:text-gray-900">Docs</Link>
               <Link href="/privacy" className="hover:text-gray-900">Privacy</Link>
               <Link href="/terms" className="hover:text-gray-900">Terms</Link>
               <a href="https://discord.gg/bearified" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900">Discord</a>
