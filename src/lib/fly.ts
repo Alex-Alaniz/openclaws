@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import * as Sentry from '@sentry/nextjs';
+import { createSubdomainCname, deleteSubdomainCname } from '@/lib/porkbun';
 
 const FLY_API_BASE = 'https://api.machines.dev/v1';
 const FLY_GQL_URL = 'https://api.fly.io/graphql';
@@ -283,6 +284,14 @@ export async function provisionGateway(opts: {
     // Non-fatal — cert may already exist or DNS not ready yet; falls back to .fly.dev
   }
 
+  // 2c. Create DNS CNAME record via Porkbun API
+  try {
+    await createSubdomainCname(slug, `${appName}.fly.dev`);
+  } catch (err) {
+    Sentry.captureException(err, { extra: { slug, appName } });
+    // Non-fatal — DNS can be created manually; gateway falls back to .fly.dev URL
+  }
+
   let volume: FlyVolume;
   try {
     // 3. Create persistent volume
@@ -415,4 +424,11 @@ export async function destroyGateway(opts: {
 
   // Delete app
   await deleteApp(opts.appName).catch(() => {});
+
+  // Clean up DNS record
+  const prefix = getAppPrefix();
+  const slug = opts.appName.startsWith(`${prefix}-`) ? opts.appName.slice(prefix.length + 1) : null;
+  if (slug) {
+    await deleteSubdomainCname(slug).catch(() => {});
+  }
 }
