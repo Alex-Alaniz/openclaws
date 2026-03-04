@@ -49,10 +49,13 @@ function slugify(email: string): string {
 }
 
 async function flyFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getFlyToken();
+  // FlyV1 tokens include their own auth scheme; legacy fo1_ tokens use Bearer
+  const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
   const res = await fetch(`${FLY_API_BASE}${path}`, {
     ...options,
     headers: {
-      Authorization: `Bearer ${getFlyToken()}`,
+      Authorization: authHeader,
       'Content-Type': 'application/json',
       ...options.headers,
     },
@@ -130,8 +133,8 @@ export async function createMachine(
               {
                 type: 'http',
                 path: '/healthz',
-                interval: 15000,
-                timeout: 5000,
+                interval: '15s',
+                timeout: '5s',
               },
             ],
           },
@@ -205,11 +208,25 @@ export async function provisionGateway(opts: {
   // 1. Create Fly app
   await createApp(appName);
 
+  // 2. Allocate public IPs (required for DNS/TLS)
+  try {
+    await flyFetch(`/apps/${appName}/ips`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'shared_v4' }),
+    });
+    await flyFetch(`/apps/${appName}/ips`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'v6' }),
+    });
+  } catch {
+    // Non-fatal — IPs may already exist or shared_v4 may suffice
+  }
+
   let volume: FlyVolume;
   try {
     // 2. Create persistent volume
     volume = await createVolume(appName, {
-      name: `data-${slug}`,
+      name: `data_${slug.replace(/-/g, '_')}`,
       region,
       size_gb: 1,
     });
@@ -232,13 +249,13 @@ export async function provisionGateway(opts: {
         OPENCLAW_STATE_DIR: '/data/state',
         OPENCLAW_WORKSPACE_DIR: '/data/workspace',
         OPENCLAW_GATEWAY_TOKEN: gatewayToken,
-        ...(opts.anthropicApiKey ? { ANTHROPIC_API_KEY: opts.anthropicApiKey } : {}),
-        ...(opts.anthropicAuthToken ? { ANTHROPIC_AUTH_TOKEN: opts.anthropicAuthToken } : {}),
-        ...(opts.openaiApiKey ? { OPENAI_API_KEY: opts.openaiApiKey } : {}),
-        ...(opts.selectedModel ? { SELECTED_MODEL: opts.selectedModel } : {}),
+        ...(opts.anthropicApiKey ? { ANTHROPIC_API_KEY: opts.anthropicApiKey.trim() } : {}),
+        ...(opts.anthropicAuthToken ? { ANTHROPIC_AUTH_TOKEN: opts.anthropicAuthToken.trim() } : {}),
+        ...(opts.openaiApiKey ? { OPENAI_API_KEY: opts.openaiApiKey.trim() } : {}),
+        ...(opts.selectedModel ? { SELECTED_MODEL: opts.selectedModel.trim() } : {}),
         // Fallback to platform key if no user key provided
         ...(!opts.anthropicApiKey && !opts.anthropicAuthToken && process.env.ANTHROPIC_API_KEY
-          ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY }
+          ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY.trim() }
           : {}),
       },
       volumeId: volume.id,
@@ -250,11 +267,33 @@ export async function provisionGateway(opts: {
     throw err;
   }
 
+  // 4. Wait for gateway to become healthy
+  const gatewayUrl = `https://${appName}.fly.dev`;
+  let healthy = false;
+  for (let i = 0; i < 15; i++) {
+    try {
+      const healthRes = await fetch(`${gatewayUrl}/healthz`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (healthRes.ok) {
+        healthy = true;
+        break;
+      }
+    } catch {
+      // Gateway not ready yet
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+
+  if (!healthy) {
+    throw new Error('Gateway failed health check after provisioning');
+  }
+
   return {
     appName,
     machineId: machine.id,
     volumeId: volume.id,
-    gatewayUrl: `https://${appName}.fly.dev`,
+    gatewayUrl,
     gatewayToken,
     setupPassword,
   };
