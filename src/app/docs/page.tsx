@@ -408,14 +408,19 @@ export default function DocsPage() {
               OpenClaws integrates with 1000+ services through Composio. Toolkits are OAuth-connected external
               services (Gmail, GitHub, Slack, etc.) managed from the OpenClaws dashboard — distinct from
               the <strong className="text-zinc-200">Skills</strong> in the Control UI, which are built-in gateway capabilities.
-              To connect a toolkit:
+              When you connect a toolkit, your gateway automatically gets access to it.
             </P>
             <ol className="mt-2 space-y-2 text-sm text-zinc-400">
               <li className="flex gap-2"><span className="text-zinc-500">1.</span>Go to the <strong className="text-zinc-200">Toolkits</strong> page in the OpenClaws dashboard</li>
               <li className="flex gap-2"><span className="text-zinc-500">2.</span>Search for the service you want (Gmail, Slack, GitHub, etc.)</li>
               <li className="flex gap-2"><span className="text-zinc-500">3.</span>Click <strong className="text-zinc-200">Connect</strong> and authorize via OAuth</li>
-              <li className="flex gap-2"><span className="text-zinc-500">4.</span>Once connected, your assistant can use that tool in conversations</li>
+              <li className="flex gap-2"><span className="text-zinc-500">4.</span>Your assistant can now use that service — try asking it to read your Gmail or send a Slack message</li>
             </ol>
+            <P>
+              The bridge works automatically: your Composio API credentials and entity ID are injected into
+              your gateway at provisioning time. The gateway&apos;s <strong className="text-zinc-200">Composio skill</strong> discovers
+              connected services and executes actions on your behalf using OAuth tokens managed by Composio.
+            </P>
           </section>
 
           {/* ────── MODELS ────── */}
