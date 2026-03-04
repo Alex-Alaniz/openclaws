@@ -1,6 +1,7 @@
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 import * as Sentry from '@sentry/nextjs';
 import { createSubdomainCname, deleteSubdomainCname } from '@/lib/porkbun';
+import { getSupabase } from '@/lib/supabase';
 
 const FLY_API_BASE = 'https://api.machines.dev/v1';
 const FLY_GQL_URL = 'https://api.fly.io/graphql';
@@ -41,13 +42,43 @@ function getAppPrefix(): string {
 }
 
 function slugify(email: string): string {
-  return email
+  const slug = email
     .toLowerCase()
     .replace(/@.*$/, '')
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 20);
+  // Guard against empty slug from malformed email
+  return slug || email.replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'user';
+}
+
+async function generateUniqueSlug(email: string, exclude: Set<string> = new Set()): Promise<string> {
+  const base = slugify(email);
+  const prefix = getAppPrefix();
+  const targetName = `${prefix}-${base}`;
+
+  // Query exact match OR "{base}-{number}" variants (not sibling prefixes like oc-alexander)
+  const { data: existing } = await getSupabase()
+    .from('instances')
+    .select('fly_app_name')
+    .or(`fly_app_name.eq.${targetName},fly_app_name.like.${targetName}-%`);
+
+  // Merge Supabase results with exclusion set (slugs that failed on Fly despite not being in DB)
+  const taken = new Set([
+    ...(existing?.map((r: { fly_app_name: string | null }) => r.fly_app_name) ?? []),
+    ...Array.from(exclude).map(s => `${prefix}-${s}`),
+  ]);
+
+  if (!taken.has(targetName)) return base;
+
+  for (let i = 2; i <= 999; i++) {
+    const candidate = `${base}-${i}`;
+    if (!taken.has(`${prefix}-${candidate}`)) return candidate;
+  }
+
+  // Fallback: append random 4-char hex
+  return `${base}-${randomBytes(2).toString('hex')}`;
 }
 
 async function flyFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -66,7 +97,7 @@ async function flyFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    const err = new Error(`Fly API ${res.status} on ${options.method ?? 'GET'} ${path}`);
+    const err = new Error(`Fly API ${res.status} on ${options.method ?? 'GET'} ${path}: ${body}`);
     Sentry.captureException(err, { extra: { responseBody: body, status: res.status } });
     throw err;
   }
@@ -224,31 +255,39 @@ export async function provisionGateway(opts: {
   openaiApiKey?: string;
 }): Promise<ProvisionResult> {
   const prefix = getAppPrefix();
-  const slug = slugify(opts.userEmail);
-  const appName = `${prefix}-${slug}`;
   const region = opts.region ?? 'iad';
   const gatewayToken = randomUUID();
 
   // Provisioning operations get a longer timeout (60s)
   const provisionSignal = AbortSignal.timeout(60_000);
 
-  // 1. Create Fly app (idempotent — ignore "already exists")
-  try {
-    await flyFetch('/apps', {
-      method: 'POST',
-      signal: provisionSignal,
-      body: JSON.stringify({ app_name: appName, org_slug: 'personal' }),
-    });
-  } catch (err) {
-    if (!(err instanceof Error && err.message.includes('already'))) {
-      throw err;
+  // 1. Generate unique slug and create Fly app (with retry for race conditions)
+  let slug: string = '';
+  let appName: string = '';
+  const excludeSlugs = new Set<string>();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    slug = await generateUniqueSlug(opts.userEmail, excludeSlugs);
+    appName = `${prefix}-${slug}`;
+    try {
+      await flyFetch('/apps', {
+        method: 'POST',
+        signal: provisionSignal,
+        body: JSON.stringify({ app_name: appName, org_slug: 'personal' }),
+      });
+      break;
+    } catch (err) {
+      if (attempt === 2 || !(err instanceof Error && err.message.includes('already'))) {
+        throw err;
+      }
+      // Collision from race condition or orphaned Fly app — exclude this slug and retry
+      excludeSlugs.add(slug);
     }
   }
 
   // 2. Allocate public IPs via GraphQL (Machines REST API has no /ips endpoint)
+  const token = getFlyToken();
+  const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
   try {
-    const token = getFlyToken();
-    const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
     const allocateIp = async (type: string) => {
       await fetch(FLY_GQL_URL, {
         method: 'POST',
@@ -269,8 +308,6 @@ export async function provisionGateway(opts: {
   // 2b. Provision TLS certificate for custom domain
   const customDomain = `${slug}.openclaws.biz`;
   try {
-    const token = getFlyToken();
-    const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
     await fetch(FLY_GQL_URL, {
       method: 'POST',
       signal: provisionSignal,
@@ -284,11 +321,36 @@ export async function provisionGateway(opts: {
     // Non-fatal — cert may already exist or DNS not ready yet; falls back to .fly.dev
   }
 
-  // 2c. Create DNS CNAME record via Porkbun API
+  // 2c. Query cert validation target and create DNS CNAME via Porkbun API
+  let cnameTarget = `${appName}.fly.dev`;
   try {
-    await createSubdomainCname(slug, `${appName}.fly.dev`);
+    const certRes = await fetch(FLY_GQL_URL, {
+      method: 'POST',
+      signal: provisionSignal,
+      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `query($appId: String!, $hostname: String!) { app(name: $appId) { certificate(hostname: $hostname) { dnsValidationTarget } } }`,
+        variables: { appId: appName, hostname: customDomain },
+      }),
+    });
+    const certData = (await certRes.json()) as { data?: { app?: { certificate?: { dnsValidationTarget?: string } } } };
+    const validationTarget = certData?.data?.app?.certificate?.dnsValidationTarget;
+    if (validationTarget) {
+      cnameTarget = validationTarget;
+    } else {
+      Sentry.captureMessage('Missing dnsValidationTarget after addCertificate', {
+        level: 'warning',
+        extra: { appName, customDomain, certData },
+      });
+    }
+  } catch {
+    // Non-fatal — use default .fly.dev target
+  }
+
+  try {
+    await createSubdomainCname(slug, cnameTarget);
   } catch (err) {
-    Sentry.captureException(err, { extra: { slug, appName } });
+    Sentry.captureException(err, { extra: { slug, appName, cnameTarget } });
     // Non-fatal — DNS can be created manually; gateway falls back to .fly.dev URL
   }
 
@@ -313,6 +375,14 @@ export async function provisionGateway(opts: {
   let machine: FlyMachine;
   try {
     // 4. Create machine with real OpenClaw
+    const gatewayConfig = JSON.stringify({
+      gateway: {
+        controlUi: {
+          allowedOrigins: [`https://${slug}.openclaws.biz`, `https://${appName}.fly.dev`],
+          allowInsecureAuth: true,
+        },
+      },
+    });
     machine = await flyFetch<FlyMachine>(`/apps/${appName}/machines`, {
       method: 'POST',
       signal: provisionSignal,
@@ -325,10 +395,7 @@ export async function provisionGateway(opts: {
             cmd: [
               'sh', '-c',
               // Seed gateway config with allowed Control UI origin before starting
-              `mkdir -p /data && cat > /data/openclaw.json <<'OCEOF'
-{"gateway":{"controlUi":{"allowedOrigins":["https://${slug}.openclaws.biz","https://${appName}.fly.dev"],"allowInsecureAuth":true}}}
-OCEOF
-exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
+              `mkdir -p /data && printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json && exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
             ],
           },
           env: {
