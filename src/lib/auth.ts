@@ -68,3 +68,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export function getUserEmail(session: { user?: { email?: string | null } }): string | null {
+  return session.user?.email?.trim().toLowerCase() ?? null;
+}

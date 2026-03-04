@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
-import { authOptions } from '@/lib/auth';
+import { authOptions, getUserEmail } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { detectKeyType, storeProviderKey, listProviderKeys, deleteProviderKey, getDecryptedKey } from '@/lib/provider-keys';
 import { getInstanceByUserId, getSupabase } from '@/lib/supabase';
@@ -9,10 +9,6 @@ import { updateMachineEnv } from '@/lib/fly';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-function getUserEmail(session: { user?: { email?: string | null } }): string | null {
-  return session.user?.email?.trim().toLowerCase() ?? null;
-}
 
 // List keys (metadata only)
 export async function GET() {
@@ -102,6 +98,9 @@ export async function DELETE(req: Request) {
   if (!session?.user || !email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = rateLimit(`${email}:DELETE:/api/provider-keys`, 10, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const { searchParams } = new URL(req.url);
   const provider = searchParams.get('provider');

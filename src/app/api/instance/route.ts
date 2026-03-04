@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
-import { authOptions } from '@/lib/auth';
+import { authOptions, getUserEmail } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import {
   getSupabase,
@@ -15,10 +15,6 @@ import { getSubscriptionStatus } from '@/lib/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-function getUserEmail(session: { user?: { email?: string | null } }): string | null {
-  return session.user?.email?.trim().toLowerCase() ?? null;
-}
 
 export async function GET() {
   const session = await getServerSession(authOptions);

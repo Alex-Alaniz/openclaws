@@ -113,6 +113,36 @@ export async function POST(req: Request) {
       }
     }
 
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object as Stripe.Charge;
+      const customer = charge.customer
+        ? await stripe.customers.retrieve(charge.customer as string)
+        : null;
+      const email = customer && 'email' in customer ? customer.email?.toLowerCase() : null;
+
+      if (email) {
+        const instance = await getInstanceByUserId(email);
+        if (instance && instance.fly_app_name && instance.fly_machine_id && instance.fly_volume_id) {
+          await updateInstanceStatus(email, 'deleting');
+          destroyGateway({
+            appName: instance.fly_app_name,
+            machineId: instance.fly_machine_id,
+            volumeId: instance.fly_volume_id,
+          })
+            .then(async () => {
+              const { deleteInstanceByUserId } = await import('@/lib/supabase');
+              await deleteInstanceByUserId(email);
+            })
+            .catch(async (err) => {
+              Sentry.captureException(err);
+              await updateInstanceStatus(email, 'error', {
+                error_message: 'Refund processed but gateway teardown failed',
+              }).catch(() => {});
+            });
+        }
+      }
+    }
+
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
     Sentry.captureException(error);
