@@ -32,7 +32,7 @@ export async function GET() {
     const instance = await getInstanceByUserId(email);
     if (instance) {
       // Strip sensitive fields from response
-      const { setup_password, ...safe } = instance;
+      const { setup_password, gateway_token, ...safe } = instance;
       return NextResponse.json({ instance: safe });
     }
     return NextResponse.json({ instance: null });
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   try {
     const existing = await getInstanceByUserId(email);
     if (existing && (existing.status === 'running' || existing.status === 'provisioning')) {
-      const { setup_password, ...safe } = existing;
+      const { setup_password, gateway_token, ...safe } = existing;
       return NextResponse.json(
         { error: 'Instance already exists', instance: safe },
         { status: 409 },
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
 
     const instance = await getInstanceByUserId(email);
     if (instance) {
-      const { setup_password: _sp, ...safe } = instance;
+      const { setup_password: _sp, gateway_token: _gt, ...safe } = instance;
       return NextResponse.json({ instance: safe });
     }
     return NextResponse.json({ instance: null });

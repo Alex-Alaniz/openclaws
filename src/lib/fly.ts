@@ -175,9 +175,15 @@ export async function updateMachineEnv(
   const currentEnv = machine.config.env ?? {};
   const mergedEnv = { ...currentEnv, ...envUpdates };
 
-  // Update machine with merged env
+  // Stop machine — Fly requires stopped state for config updates
+  await stopMachine(appName, machineId).catch(() => {});
+  await flyFetch(`/apps/${appName}/machines/${machineId}/wait?state=stopped&timeout=30`, {
+    method: 'GET',
+  }).catch(() => {});
+
+  // Update machine with merged env (POST triggers restart)
   await flyFetch(`/apps/${appName}/machines/${machineId}`, {
-    method: 'PATCH',
+    method: 'POST',
     body: JSON.stringify({
       config: {
         ...machine.config,
@@ -205,8 +211,14 @@ export async function provisionGateway(opts: {
   const gatewayToken = randomUUID();
   const setupPassword = randomUUID();
 
-  // 1. Create Fly app
-  await createApp(appName);
+  // 1. Create Fly app (idempotent — ignore "already exists")
+  try {
+    await createApp(appName);
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes('already'))) {
+      throw err;
+    }
+  }
 
   // 2. Allocate public IPs (required for DNS/TLS)
   try {

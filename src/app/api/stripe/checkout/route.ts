@@ -25,9 +25,23 @@ export async function POST() {
   const stripe = new Stripe(secretKey);
 
   try {
+    // Look up existing customer by email, or create one
+    const existing = await stripe.customers.list({
+      email: session.user.email,
+      limit: 1,
+    });
+    const customer =
+      existing.data.length > 0
+        ? existing.data[0]
+        : await stripe.customers.create({
+            email: session.user.email,
+            metadata: { app: 'openclaws' },
+          });
+
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      customer_email: session.user.email,
+      payment_method_types: ['card'],
+      customer: customer.id,
       allow_promotion_codes: true,
       line_items: [
         {
