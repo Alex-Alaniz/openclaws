@@ -93,6 +93,10 @@ export function getComposioClient() {
   return composioClient;
 }
 
+export function getComposioEntityIdFromEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export function getComposioEntityId(session: Session) {
   const userId = (session.user as { id?: string } | undefined)?.id?.trim();
   if (userId) return `user:${userId.toLowerCase()}`;

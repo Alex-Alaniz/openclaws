@@ -217,7 +217,7 @@ export async function updateMachineEnv(
     `/apps/${appName}/machines/${machineId}`,
   );
 
-  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_OAUTH_TOKEN', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY']);
+  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_OAUTH_TOKEN', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'COMPOSIO_API_KEY', 'COMPOSIO_ENTITY_ID']);
   const safeUpdates: Record<string, string> = {};
   for (const [k, v] of Object.entries(envUpdates)) {
     if (ALLOWED_ENV_KEYS.has(k)) safeUpdates[k] = v;
@@ -253,6 +253,7 @@ export async function provisionGateway(opts: {
   anthropicApiKey?: string;
   anthropicOauthToken?: string;
   openaiApiKey?: string;
+  composioEntityId?: string;
 }): Promise<ProvisionResult> {
   const prefix = getAppPrefix();
   const region = opts.region ?? 'iad';
@@ -410,6 +411,13 @@ export async function provisionGateway(opts: {
             // Fallback to platform key if no user key provided
             ...(!opts.anthropicApiKey && !opts.anthropicOauthToken && process.env.ANTHROPIC_API_KEY
               ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY.trim() }
+              : {}),
+            // Composio toolkit bridge — platform key + per-user entity
+            ...(process.env.COMPOSIO_API_KEY
+              ? { COMPOSIO_API_KEY: process.env.COMPOSIO_API_KEY.trim() }
+              : {}),
+            ...(opts.composioEntityId
+              ? { COMPOSIO_ENTITY_ID: opts.composioEntityId }
               : {}),
           },
           guest: { cpus: 2, memory_mb: 2048, cpu_kind: 'shared' },
