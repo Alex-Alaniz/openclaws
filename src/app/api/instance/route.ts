@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import {
+  getSupabase,
   getInstanceByUserId,
-  upsertInstance,
   updateInstanceStatus,
   deleteInstanceByUserId,
 } from '@/lib/supabase';
@@ -67,32 +67,46 @@ export async function POST(req: Request) {
     // Allow provisioning if Stripe is unreachable — webhook already gates the primary flow
   }
 
-  // Check for existing instance
-  try {
-    const existing = await getInstanceByUserId(email);
-    if (existing && (existing.status === 'running' || existing.status === 'provisioning')) {
-      const { setup_password, gateway_token, ...safe } = existing;
-      return NextResponse.json(
-        { error: 'Instance already exists', instance: safe },
-        { status: 409 },
-      );
-    }
-  } catch {
-    // Continue with provisioning if lookup fails
-  }
-
   // Parse optional region
   const body = await req.json().catch(() => ({})) as { region?: string };
   const region = typeof body.region === 'string' ? body.region.trim() : undefined;
 
-  // Create initial DB row
+  // Atomic provisioning claim — prevents race conditions
+  // Step 1: Try conditional update (re-provision only if errored/stopped)
   try {
-    await upsertInstance({
-      user_id: email,
-      user_email: email,
-      status: 'provisioning',
-      error_message: null,
-    });
+    const { data: reclaimed } = await getSupabase()
+      .from('instances')
+      .update({ status: 'provisioning', error_message: null, updated_at: new Date().toISOString() })
+      .eq('user_id', email)
+      .in('status', ['error', 'stopped'])
+      .select('*')
+      .maybeSingle();
+
+    if (!reclaimed) {
+      // No row was updated — either no row exists or it's running/provisioning
+      // Step 2: Try insert (unique constraint on user_id prevents duplicates)
+      const { error: insertErr } = await getSupabase()
+        .from('instances')
+        .insert({
+          user_id: email,
+          user_email: email,
+          status: 'provisioning',
+          updated_at: new Date().toISOString(),
+        });
+
+      if (insertErr) {
+        // Row exists and is running/provisioning → 409
+        const existing = await getInstanceByUserId(email);
+        if (existing) {
+          const { setup_password, gateway_token, ...safe } = existing;
+          return NextResponse.json(
+            { error: 'Instance already exists', instance: safe },
+            { status: 409 },
+          );
+        }
+        return NextResponse.json({ error: 'Instance already exists' }, { status: 409 });
+      }
+    }
   } catch (error) {
     Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to initiate provisioning' }, { status: 500 });
