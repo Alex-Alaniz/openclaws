@@ -14,6 +14,13 @@ type InstanceData = {
   gateway_url: string | null;
 };
 
+type ProviderKeyInfo = {
+  provider: string;
+  keyType: string;
+  keySuffix: string;
+  validated: boolean;
+};
+
 export default function DashboardPage() {
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -21,10 +28,15 @@ export default function DashboardPage() {
   const [instance, setInstance] = useState<InstanceData | null>(null);
   const [instanceLoading, setInstanceLoading] = useState(true);
   const [subActive, setSubActive] = useState<boolean | null>(null);
+  const [providerKeys, setProviderKeys] = useState<ProviderKeyInfo[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const canSend = draft.trim().length > 0 && !isLoading;
+  const gatewayReady = instance?.status === 'running' && instance?.gateway_url;
+  const hasByoKey = providerKeys.length > 0;
+  const chatMode: 'gateway' | 'byo' | 'none' = gatewayReady ? 'gateway' : hasByoKey ? 'byo' : 'none';
+  const chatEnabled = chatMode !== 'none';
+  const canSend = draft.trim().length > 0 && !isLoading && chatEnabled;
 
   const friendlyError = (raw: string | undefined): string => {
     const msg = (raw ?? '').toLowerCase();
@@ -35,7 +47,7 @@ export default function DashboardPage() {
     return 'Something went wrong. Please try again.';
   };
 
-  // Fetch instance + subscription status
+  // Fetch instance, subscription, and provider keys status
   useEffect(() => {
     fetch('/api/instance')
       .then((r) => {
@@ -51,6 +63,10 @@ export default function DashboardPage() {
         return r.json();
       })
       .then((data: { active: boolean } | null) => { if (data) setSubActive(data.active); })
+      .catch(() => {});
+    fetch('/api/provider-keys')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { keys: ProviderKeyInfo[] } | null) => { if (data?.keys) setProviderKeys(data.keys); })
       .catch(() => {});
   }, []);
 
@@ -68,7 +84,7 @@ export default function DashboardPage() {
 
   const sendMessage = useCallback(async () => {
     const text = draft.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || !chatEnabled) return;
 
     setDraft('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -76,8 +92,10 @@ export default function DashboardPage() {
     trackMessageSent();
     setIsLoading(true);
 
+    const endpoint = chatMode === 'gateway' ? '/api/chat' : '/api/chat-lite';
+
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
@@ -99,12 +117,14 @@ export default function DashboardPage() {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Your gateway seems unreachable. Check Settings to verify your instance is running.' },
+        { role: 'assistant', content: chatMode === 'gateway'
+          ? 'Your gateway seems unreachable. Check Settings to verify your instance is running.'
+          : 'Failed to reach the AI provider. Please try again.' },
       ]);
     } finally {
       setIsLoading(false);
     }
-  }, [draft, isLoading]);
+  }, [draft, isLoading, chatEnabled, chatMode]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -115,8 +135,6 @@ export default function DashboardPage() {
     },
     [sendMessage],
   );
-
-  const gatewayReady = instance?.status === 'running' && instance?.gateway_url;
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -130,12 +148,21 @@ export default function DashboardPage() {
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
               <span>Gateway connected</span>
             </>
+          ) : hasByoKey ? (
+            <>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-400" />
+              <span>BYO Key Chat</span>
+              <span className="text-zinc-600">·</span>
+              <a href="/dashboard/settings" className="text-zinc-500 hover:text-zinc-300">
+                Upgrade for full gateway
+              </a>
+            </>
           ) : (
             <>
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-zinc-500" />
               <span>No gateway — </span>
               <a href="/dashboard/settings" className="font-semibold text-zinc-200 hover:text-zinc-100">
-                Deploy one in Settings
+                Add API key or deploy gateway
               </a>
             </>
           )}
@@ -175,6 +202,30 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-zinc-500">Or send a quick message below</p>
+                  </div>
+                </div>
+              ) : hasByoKey ? (
+                <div className="w-full max-w-md space-y-6 px-4">
+                  <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-6 text-center">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10">
+                      <svg className="h-7 w-7 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </div>
+                    <h2 className="mb-2 text-lg font-bold text-zinc-100">BYO Key Chat</h2>
+                    <p className="mb-3 text-sm text-zinc-400">
+                      Chat directly using your own API key. No subscription required.
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      Using {providerKeys[0].provider === 'anthropic' ? 'Anthropic' : providerKeys[0].provider === 'openai' ? 'OpenAI' : providerKeys[0].provider} key ({providerKeys[0].keySuffix})
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="mb-2 text-xs text-zinc-500">Send a message to start chatting</p>
+                    <p className="text-xs text-zinc-600">
+                      Want browser automation, skills, and channels?{' '}
+                      <Link href="/dashboard/settings" className="text-blue-400 hover:text-blue-300">Upgrade to Pro</Link>
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -269,10 +320,10 @@ export default function DashboardPage() {
               value={draft}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              disabled={!gatewayReady}
+              disabled={!chatEnabled}
               aria-label="Type your message"
               className="max-h-[200px] min-h-[44px] w-full resize-none rounded-[14px] border border-white/[0.1] bg-white/[0.045] px-3 py-2 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.22] focus:ring-1 focus:ring-white/[0.22] disabled:opacity-50"
-              placeholder={gatewayReady ? 'Quick message...' : 'Deploy a gateway to start chatting...'}
+              placeholder={chatEnabled ? 'Send a message...' : 'Add an API key or deploy a gateway to start chatting...'}
             />
             <button
               onClick={sendMessage}
