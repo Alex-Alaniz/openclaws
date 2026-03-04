@@ -265,6 +265,24 @@ export async function provisionGateway(opts: {
     // Non-fatal — IPs may already exist
   }
 
+  // 2b. Provision TLS certificate for custom domain
+  const customDomain = `${slug}.openclaws.biz`;
+  try {
+    const token = getFlyToken();
+    const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
+    await fetch(FLY_GQL_URL, {
+      method: 'POST',
+      signal: provisionSignal,
+      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `mutation($appId: ID!, $hostname: String!) { addCertificate(appId: $appId, hostname: $hostname) { certificate { id hostname } } }`,
+        variables: { appId: appName, hostname: customDomain },
+      }),
+    });
+  } catch {
+    // Non-fatal — cert may already exist or DNS not ready yet; falls back to .fly.dev
+  }
+
   let volume: FlyVolume;
   try {
     // 3. Create persistent volume
@@ -299,7 +317,7 @@ export async function provisionGateway(opts: {
               'sh', '-c',
               // Seed gateway config with allowed Control UI origin before starting
               `mkdir -p /data && cat > /data/openclaw.json <<'OCEOF'
-{"gateway":{"controlUi":{"allowedOrigins":["https://${appName}.fly.dev"],"allowInsecureAuth":true}}}
+{"gateway":{"controlUi":{"allowedOrigins":["https://${slug}.openclaws.biz","https://${appName}.fly.dev"],"allowInsecureAuth":true}}}
 OCEOF
 exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
             ],
@@ -349,12 +367,13 @@ exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
   }
 
   // 5. Wait for gateway to become healthy (real OpenClaw may take 30-60s)
-  const gatewayUrl = `https://${appName}.fly.dev`;
+  const gatewayUrl = `https://${customDomain}`;
+  const healthCheckUrl = `https://${appName}.fly.dev`;
   let healthy = false;
   for (let i = 0; i < 30; i++) {
     try {
       // Any response (even 401) means the server is up
-      const res = await fetch(gatewayUrl, {
+      const res = await fetch(healthCheckUrl, {
         signal: AbortSignal.timeout(5000),
       });
       if (res.status > 0) {

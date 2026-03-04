@@ -160,7 +160,7 @@ export default function DashboardPage() {
                       Access the full experience — browser automation, 5400+ skills, messaging channels, and persistent memory.
                     </p>
                     <a
-                      href={instance!.gateway_url!}
+                      href="/api/gateway/open"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"

@@ -24,6 +24,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const rl = rateLimit(`${email}:GET:/api/instance`, 30, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
+
   try {
     const instance = await getInstanceByUserId(email);
     if (instance) {
@@ -66,6 +69,11 @@ export async function POST(req: Request) {
   // Parse optional region
   const body = await req.json().catch(() => ({})) as { region?: string };
   const region = typeof body.region === 'string' ? body.region.trim() : undefined;
+
+  const VALID_REGIONS = new Set(['iad', 'lax', 'ord', 'sea', 'sjc', 'atl', 'dfw', 'ewr', 'mia']);
+  if (region && !VALID_REGIONS.has(region)) {
+    return NextResponse.json({ error: 'Invalid region' }, { status: 400 });
+  }
 
   // Atomic provisioning claim — prevents race conditions
   // Step 1: Try conditional update (re-provision only if errored/stopped)

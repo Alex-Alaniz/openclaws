@@ -17,6 +17,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const rl = rateLimit(`${email}:GET:/api/model`, 30, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
+
   try {
     const instance = await getInstanceByUserId(email);
     return NextResponse.json({

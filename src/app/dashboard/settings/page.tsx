@@ -54,6 +54,7 @@ export default function SettingsPage() {
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [isDestroying, setIsDestroying] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [gatewayToken, setGatewayToken] = useState<string | null>(null);
 
   // Model state
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514');
@@ -134,12 +135,29 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const fetchToken = useCallback(async () => {
+    try {
+      const res = await fetch('/api/instance/token');
+      if (res.status === 401) { window.location.href = '/login'; return; }
+      if (!res.ok) return;
+      const data = (await res.json()) as { token: string | null };
+      setGatewayToken(data.token);
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
   useEffect(() => {
     fetchInstance();
     fetchKeys();
     fetchModel();
     fetchSubscription();
   }, [fetchInstance, fetchKeys, fetchModel, fetchSubscription]);
+
+  // Fetch token when instance is running
+  useEffect(() => {
+    if (instance?.status === 'running') fetchToken();
+  }, [instance?.status, fetchToken]);
 
   // Poll while provisioning
   useEffect(() => {
@@ -449,7 +467,7 @@ export default function SettingsPage() {
             {instance.gateway_url && instance.status === 'running' ? (
               <div className="space-y-2">
                 <a
-                  href={instance.gateway_url}
+                  href="/api/gateway/open"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
@@ -465,16 +483,16 @@ export default function SettingsPage() {
               </div>
             ) : null}
 
-            {instance.gateway_token && instance.status === 'running' ? (
+            {gatewayToken && instance.status === 'running' ? (
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                 <p className="mb-1 text-xs text-zinc-500">Access Token</p>
                 <div className="flex items-center gap-2">
                   <code className="break-all text-sm text-zinc-200">
-                    {instance.gateway_token.slice(0, 8)}...{instance.gateway_token.slice(-4)}
+                    {gatewayToken.slice(0, 8)}...{gatewayToken.slice(-4)}
                   </code>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(instance.gateway_token!);
+                      navigator.clipboard.writeText(gatewayToken);
                       setCopiedToken(true);
                       setTimeout(() => setCopiedToken(false), 2000);
                     }}

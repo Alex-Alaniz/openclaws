@@ -18,6 +18,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const rl = rateLimit(`${email}:GET:/api/provider-keys`, 30, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
+
   try {
     const keys = await listProviderKeys(email);
     return NextResponse.json({ keys });
