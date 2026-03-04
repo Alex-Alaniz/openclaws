@@ -289,7 +289,14 @@ export async function provisionGateway(opts: {
         config: {
           image: 'ghcr.io/openclaw/openclaw:main',
           init: {
-            cmd: ['node', 'dist/index.js', 'gateway', '--allow-unconfigured', '--port', '3000', '--bind', 'lan'],
+            cmd: [
+              'sh', '-c',
+              // Seed gateway config with allowed Control UI origin before starting
+              `mkdir -p /data && cat > /data/openclaw.json <<'OCEOF'
+{"gateway":{"controlUi":{"allowedOrigins":["https://${appName}.fly.dev"],"allowInsecureAuth":true}}}
+OCEOF
+exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
+            ],
           },
           env: {
             NODE_ENV: 'production',
