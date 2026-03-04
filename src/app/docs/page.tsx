@@ -65,6 +65,7 @@ export default function DocsPage() {
               ['usage', 'Usage'],
               ['nodes', 'Nodes & Devices'],
               ['config', 'Configuration'],
+              ['debug', 'Debug & Logs'],
               ['toolkits', 'Toolkits'],
               ['models', 'Models'],
               ['byokey', 'BYO Keys'],
@@ -124,7 +125,7 @@ export default function DocsPage() {
             <H2 id="control-ui">Control UI Overview</H2>
             <P>
               The Control UI is the browser-based dashboard for managing your gateway. It&apos;s organized into
-              4 groups with 12 tabs:
+              4 groups with 13 tabs:
             </P>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
               {[
@@ -150,9 +151,10 @@ export default function DocsPage() {
             <H3>Device Pairing (First Connection)</H3>
             <P>
               New browser connections require a one-time pairing approval. If you see &quot;pairing required,&quot;
-              the gateway host needs to approve your device. For OpenClaws managed gateways, this is handled
-              automatically when you use the &quot;Open your OpenClaw&quot; button. If connecting manually, you&apos;ll
-              need the gateway token from your Settings page.
+              the gateway needs to approve your device. When you use the &quot;Open your OpenClaw&quot; button, the
+              gateway token is included automatically — but you may still need to approve the device on first
+              connection. Contact <a href="mailto:support@openclaws.biz" className="text-zinc-200 underline hover:text-white">support</a> if
+              you&apos;re stuck on pairing.
             </P>
             <P>
               Each browser profile gets a unique device ID. Clearing browser data will require re-pairing.
@@ -403,7 +405,10 @@ export default function DocsPage() {
           <section>
             <H2 id="toolkits">Connecting Toolkits</H2>
             <P>
-              OpenClaws integrates with 1000+ services through Composio. To connect a tool:
+              OpenClaws integrates with 1000+ services through Composio. Toolkits are OAuth-connected external
+              services (Gmail, GitHub, Slack, etc.) managed from the OpenClaws dashboard — distinct from
+              the <strong className="text-zinc-200">Skills</strong> in the Control UI, which are built-in gateway capabilities.
+              To connect a toolkit:
             </P>
             <ol className="mt-2 space-y-2 text-sm text-zinc-400">
               <li className="flex gap-2"><span className="text-zinc-500">1.</span>Go to the <strong className="text-zinc-200">Toolkits</strong> page in the OpenClaws dashboard</li>
