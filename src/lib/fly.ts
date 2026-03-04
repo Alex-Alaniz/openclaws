@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import * as Sentry from '@sentry/nextjs';
 
 const FLY_API_BASE = 'https://api.machines.dev/v1';
+const FLY_GQL_URL = 'https://api.fly.io/graphql';
 
 export type FlyVolume = {
   id: string;
@@ -243,20 +244,25 @@ export async function provisionGateway(opts: {
     }
   }
 
-  // 2. Allocate public IPs (required for DNS/TLS)
+  // 2. Allocate public IPs via GraphQL (Machines REST API has no /ips endpoint)
   try {
-    await flyFetch(`/apps/${appName}/ips`, {
-      method: 'POST',
-      signal: provisionSignal,
-      body: JSON.stringify({ type: 'shared_v4' }),
-    });
-    await flyFetch(`/apps/${appName}/ips`, {
-      method: 'POST',
-      signal: provisionSignal,
-      body: JSON.stringify({ type: 'v6' }),
-    });
+    const token = getFlyToken();
+    const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
+    const allocateIp = async (type: string) => {
+      await fetch(FLY_GQL_URL, {
+        method: 'POST',
+        signal: provisionSignal,
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `mutation($input: AllocateIPAddressInput!) { allocateIpAddress(input: $input) { ipAddress { id address type } } }`,
+          variables: { input: { appId: appName, type } },
+        }),
+      });
+    };
+    await allocateIp('shared_v4');
+    await allocateIp('v6');
   } catch {
-    // Non-fatal — IPs may already exist or shared_v4 may suffice
+    // Non-fatal — IPs may already exist
   }
 
   let volume: FlyVolume;
