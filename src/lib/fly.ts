@@ -474,6 +474,13 @@ export async function provisionGateway(opts: {
     throw new Error('Gateway failed health check after provisioning');
   }
 
+  // 6. Set up Composio toolkit bridge (fire-and-forget, non-blocking)
+  if (opts.composioEntityId) {
+    setupComposioOnGateway(appName, machine.id).catch((err) => {
+      Sentry.captureException(err, { extra: { appName, step: 'composio-setup' } });
+    });
+  }
+
   return {
     appName,
     machineId: machine.id,
@@ -506,4 +513,103 @@ export async function destroyGateway(opts: {
   if (slug) {
     await deleteSubdomainCname(slug).catch(() => {});
   }
+}
+
+// --- Composio toolkit bridge setup ---
+
+async function execOnMachine(
+  appName: string,
+  machineId: string,
+  command: string[],
+  timeout = 30,
+): Promise<{ stdout: string; stderr: string; exit_code: number }> {
+  return flyFetch<{ stdout: string; stderr: string; exit_code: number }>(
+    `/apps/${appName}/machines/${machineId}/exec`,
+    {
+      method: 'POST',
+      signal: AbortSignal.timeout((timeout + 5) * 1000),
+      body: JSON.stringify({ command, timeout }),
+    },
+  );
+}
+
+const COMPOSIO_EXEC_SCRIPT = `#!/bin/sh
+ACTION="$1"
+PARAMS="\${2:-{}}"
+[ -z "$ACTION" ] && echo "Usage: composio-exec <ACTION> [JSON_PARAMS]" && exit 1
+APP_NAME=$(echo "$ACTION" | cut -d_ -f1 | tr '[:upper:]' '[:lower:]')
+TMPFILE=$(mktemp)
+cat > "$TMPFILE" << JSONEOF
+{"entityId":"\${COMPOSIO_ENTITY_ID}","appName":"\${APP_NAME}","input":\${PARAMS}}
+JSONEOF
+curl -s -X POST "https://backend.composio.dev/api/v2/actions/\${ACTION}/execute" \\
+  -H "x-api-key: \${COMPOSIO_API_KEY}" \\
+  -H "Content-Type: application/json" \\
+  -d @"$TMPFILE"
+rm -f "$TMPFILE"`;
+
+const COMPOSIO_SKILL_MD = `---
+name: composio
+description: "Execute actions on 1000+ connected services (Gmail, Slack, GitHub, Notion, etc.) via Composio toolkits. Use when: (1) user asks to send an email, read Gmail, or manage inbox, (2) user asks to send a Slack message, read channels, or manage Slack, (3) user asks to create/read/update GitHub issues, PRs, or repos via Composio, (4) user asks to interact with any connected third-party service, (5) user asks what toolkits or integrations are available. NOT for: local git operations (use git/gh CLI), weather (use weather skill), or services the user has not connected."
+metadata: { "openclaw": { "emoji": "\\uD83E\\uDDE9", "requires": { "bins": ["composio-exec"] } } }
+---
+
+# Composio Toolkits
+
+Execute actions on connected third-party services via Composio.
+
+## Commands
+
+### List Connected Services
+\\\`\\\`\\\`bash
+composio connections --active
+\\\`\\\`\\\`
+
+### List Actions
+\\\`\\\`\\\`bash
+composio actions --apps gmail --limit 20
+composio actions --use-case "send email"
+\\\`\\\`\\\`
+
+### Execute Actions
+\\\`\\\`\\\`bash
+composio-exec GMAIL_FETCH_EMAILS '{"max_results": 5}'
+composio-exec GMAIL_SEND_EMAIL '{"to": "user@example.com", "subject": "Hello", "body": "Message"}'
+composio-exec SLACK_SEND_MESSAGE '{"channel": "#general", "text": "Hello!"}'
+\\\`\\\`\\\`
+
+## Workflow
+1. Check \\\`composio connections --active\\\`
+2. Discover actions with \\\`composio actions --apps <name>\\\`
+3. Execute with \\\`composio-exec <ACTION> '<json>'\\\``;
+
+/**
+ * Install Composio CLI, bridge script, and skill on a freshly provisioned gateway.
+ * Runs async after provisioning — failures are logged but don't block the user.
+ */
+async function setupComposioOnGateway(appName: string, machineId: string): Promise<void> {
+  const setup = async (cmd: string[], timeout = 30) =>
+    execOnMachine(appName, machineId, ['sh', '-c', cmd.join(' && ')], timeout);
+
+  // Install composio-core to persistent volume (may take 30-60s)
+  await setup([
+    'cd /data',
+    'npm install --save composio-core 2>&1 | tail -3',
+  ], 120);
+
+  // Install composio-exec wrapper + symlink CLIs
+  const b64Script = Buffer.from(COMPOSIO_EXEC_SCRIPT).toString('base64');
+  await setup([
+    `echo '${b64Script}' | base64 -d > /usr/local/bin/composio-exec`,
+    'chmod +x /usr/local/bin/composio-exec',
+    'ln -sf /data/node_modules/.bin/composio /usr/local/bin/composio',
+  ]);
+
+  // Install skill
+  const b64Skill = Buffer.from(COMPOSIO_SKILL_MD).toString('base64');
+  await setup([
+    'mkdir -p /data/skills/composio',
+    `echo '${b64Skill}' | base64 -d > /data/skills/composio/SKILL.md`,
+    'ln -sf /data/skills/composio /app/skills/composio',
+  ]);
 }

@@ -12,7 +12,7 @@ import {
 import { provisionGateway, destroyGateway } from '@/lib/fly';
 import { listProviderKeys, getDecryptedKey } from '@/lib/provider-keys';
 import { getSubscriptionStatus } from '@/lib/stripe';
-import { getComposioEntityIdFromEmail, isComposioConfigured } from '@/lib/composio';
+import { getComposioEntityId, isComposioConfigured } from '@/lib/composio';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -140,10 +140,16 @@ export async function POST(req: Request) {
     // Non-fatal — provision without user keys
   }
 
-  // Resolve Composio entity ID for toolkit bridge
-  const composioEntityId = isComposioConfigured()
-    ? getComposioEntityIdFromEmail(email)
-    : undefined;
+  // Resolve Composio entity ID for toolkit bridge (must match dashboard entity ID)
+  let composioEntityId: string | undefined;
+  if (isComposioConfigured()) {
+    try {
+      composioEntityId = getComposioEntityId(session);
+    } catch {
+      // Fallback to email if session doesn't have user ID
+      composioEntityId = email.trim().toLowerCase();
+    }
+  }
 
   // Provision on Fly.io
   try {
