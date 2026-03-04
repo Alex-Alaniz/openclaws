@@ -34,6 +34,12 @@ export async function POST(req: Request) {
 
       if (userEmail) {
         try {
+          // Idempotency: skip if instance already running or provisioning
+          const existing = await getInstanceByUserId(userEmail.toLowerCase());
+          if (existing && (existing.status === 'running' || existing.status === 'provisioning')) {
+            return NextResponse.json({ received: true }, { status: 200 });
+          }
+
           await upsertInstance({
             user_id: userEmail.toLowerCase(),
             user_email: userEmail.toLowerCase(),

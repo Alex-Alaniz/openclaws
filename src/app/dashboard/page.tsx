@@ -25,16 +25,31 @@ export default function DashboardPage() {
 
   const canSend = draft.trim().length > 0 && !isLoading;
 
+  const friendlyError = (raw: string | undefined): string => {
+    const msg = (raw ?? '').toLowerCase();
+    if (msg.includes('failed to connect to gateway') || msg.includes('gateway') && msg.includes('unreachable'))
+      return 'Your gateway seems unreachable. Check Settings to verify your instance is running.';
+    if (msg.includes('connection error') || msg.includes('connect'))
+      return "Couldn't connect. Please try again in a moment.";
+    return 'Something went wrong. Please try again.';
+  };
+
   // Fetch instance + subscription status
   useEffect(() => {
     fetch('/api/instance')
-      .then((r) => r.json())
-      .then((data: { instance: InstanceData | null }) => setInstance(data.instance))
+      .then((r) => {
+        if (r.status === 401) { window.location.href = '/login'; return null; }
+        return r.json();
+      })
+      .then((data: { instance: InstanceData | null } | null) => { if (data) setInstance(data.instance); })
       .catch(() => {})
       .finally(() => setInstanceLoading(false));
     fetch('/api/subscription')
-      .then((r) => r.json())
-      .then((data: { active: boolean }) => setSubActive(data.active))
+      .then((r) => {
+        if (r.status === 401) { window.location.href = '/login'; return null; }
+        return r.json();
+      })
+      .then((data: { active: boolean } | null) => { if (data) setSubActive(data.active); })
       .catch(() => {});
   }, []);
 
@@ -65,12 +80,13 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
       });
+      if (res.status === 401) { window.location.href = '/login'; return; }
 
       const data = (await res.json()) as { message?: string; error?: string };
       if (!res.ok) {
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: `Error: ${data.error ?? 'Something went wrong'}` },
+          { role: 'assistant', content: friendlyError(data.error) },
         ]);
       } else {
         setMessages((prev) => [
@@ -81,7 +97,7 @@ export default function DashboardPage() {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Error: Failed to connect to gateway' },
+        { role: 'assistant', content: 'Your gateway seems unreachable. Check Settings to verify your instance is running.' },
       ]);
     } finally {
       setIsLoading(false);
@@ -225,11 +241,13 @@ export default function DashboardPage() {
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               disabled={!gatewayReady}
+              aria-label="Type your message"
               className="max-h-[200px] min-h-[44px] w-full resize-none rounded-[14px] border border-white/[0.1] bg-white/[0.045] px-3 py-2 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.22] focus:ring-1 focus:ring-white/[0.22] disabled:opacity-50"
               placeholder={gatewayReady ? 'Ask me anything...' : 'Deploy a gateway to start chatting...'}
             />
             <button
               onClick={sendMessage}
+              aria-label="Send message"
               className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-black transition-all ${
                 canSend ? 'opacity-100 hover:bg-zinc-100' : 'cursor-not-allowed opacity-50'
               }`}
@@ -242,6 +260,11 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Mobile tool panel notice */}
+      <div className="block border-t border-white/[0.08] bg-[#121212] px-3 py-2 text-center text-xs text-zinc-500 md:hidden">
+        Tool execution panel is available on desktop.
       </div>
 
       {/* Tool execution panel */}

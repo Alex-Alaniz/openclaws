@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import * as Sentry from '@sentry/nextjs';
 
 const FLY_API_BASE = 'https://api.machines.dev/v1';
 
@@ -54,6 +55,7 @@ async function flyFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
   const res = await fetch(`${FLY_API_BASE}${path}`, {
     ...options,
+    signal: options.signal ?? AbortSignal.timeout(30_000),
     headers: {
       Authorization: authHeader,
       'Content-Type': 'application/json',
@@ -63,7 +65,9 @@ async function flyFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`Fly API ${res.status} on ${options.method ?? 'GET'} ${path}: ${body}`);
+    const err = new Error(`Fly API ${res.status} on ${options.method ?? 'GET'} ${path}`);
+    Sentry.captureException(err, { extra: { responseBody: body, status: res.status } });
+    throw err;
   }
 
   if (res.status === 204) return undefined as T;
@@ -172,8 +176,14 @@ export async function updateMachineEnv(
     `/apps/${appName}/machines/${machineId}`,
   );
 
+  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'OPENAI_API_KEY', 'SELECTED_MODEL']);
+  const safeUpdates: Record<string, string> = {};
+  for (const [k, v] of Object.entries(envUpdates)) {
+    if (ALLOWED_ENV_KEYS.has(k)) safeUpdates[k] = v;
+  }
+
   const currentEnv = machine.config.env ?? {};
-  const mergedEnv = { ...currentEnv, ...envUpdates };
+  const mergedEnv = { ...currentEnv, ...safeUpdates };
 
   // Stop machine — Fly requires stopped state for config updates
   await stopMachine(appName, machineId).catch(() => {});
@@ -211,9 +221,16 @@ export async function provisionGateway(opts: {
   const gatewayToken = randomUUID();
   const setupPassword = randomUUID();
 
+  // Provisioning operations get a longer timeout (60s)
+  const provisionSignal = AbortSignal.timeout(60_000);
+
   // 1. Create Fly app (idempotent — ignore "already exists")
   try {
-    await createApp(appName);
+    await flyFetch('/apps', {
+      method: 'POST',
+      signal: provisionSignal,
+      body: JSON.stringify({ app_name: appName, org_slug: 'personal' }),
+    });
   } catch (err) {
     if (!(err instanceof Error && err.message.includes('already'))) {
       throw err;
@@ -224,10 +241,12 @@ export async function provisionGateway(opts: {
   try {
     await flyFetch(`/apps/${appName}/ips`, {
       method: 'POST',
+      signal: provisionSignal,
       body: JSON.stringify({ type: 'shared_v4' }),
     });
     await flyFetch(`/apps/${appName}/ips`, {
       method: 'POST',
+      signal: provisionSignal,
       body: JSON.stringify({ type: 'v6' }),
     });
   } catch {
@@ -236,11 +255,15 @@ export async function provisionGateway(opts: {
 
   let volume: FlyVolume;
   try {
-    // 2. Create persistent volume
-    volume = await createVolume(appName, {
-      name: `data_${slug.replace(/-/g, '_')}`,
-      region,
-      size_gb: 1,
+    // 3. Create persistent volume
+    volume = await flyFetch<FlyVolume>(`/apps/${appName}/volumes`, {
+      method: 'POST',
+      signal: provisionSignal,
+      body: JSON.stringify({
+        name: `data_${slug.replace(/-/g, '_')}`,
+        region,
+        size_gb: 1,
+      }),
     });
   } catch (err) {
     // Cleanup app on volume creation failure
@@ -250,27 +273,52 @@ export async function provisionGateway(opts: {
 
   let machine: FlyMachine;
   try {
-    // 3. Create machine with OpenClaw Gateway
-    machine = await createMachine(appName, {
-      name: `gw-${slug}`,
-      region,
-      image: 'ghcr.io/alex-alaniz/openclaw-gateway:latest',
-      env: {
-        PORT: '8080',
-        SETUP_PASSWORD: setupPassword,
-        OPENCLAW_STATE_DIR: '/data/state',
-        OPENCLAW_WORKSPACE_DIR: '/data/workspace',
-        OPENCLAW_GATEWAY_TOKEN: gatewayToken,
-        ...(opts.anthropicApiKey ? { ANTHROPIC_API_KEY: opts.anthropicApiKey.trim() } : {}),
-        ...(opts.anthropicAuthToken ? { ANTHROPIC_AUTH_TOKEN: opts.anthropicAuthToken.trim() } : {}),
-        ...(opts.openaiApiKey ? { OPENAI_API_KEY: opts.openaiApiKey.trim() } : {}),
-        ...(opts.selectedModel ? { SELECTED_MODEL: opts.selectedModel.trim() } : {}),
-        // Fallback to platform key if no user key provided
-        ...(!opts.anthropicApiKey && !opts.anthropicAuthToken && process.env.ANTHROPIC_API_KEY
-          ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY.trim() }
-          : {}),
-      },
-      volumeId: volume.id,
+    // 4. Create machine with OpenClaw Gateway
+    machine = await flyFetch<FlyMachine>(`/apps/${appName}/machines`, {
+      method: 'POST',
+      signal: provisionSignal,
+      body: JSON.stringify({
+        name: `gw-${slug}`,
+        region,
+        config: {
+          image: 'ghcr.io/alex-alaniz/openclaw-gateway:latest',
+          env: {
+            PORT: '8080',
+            SETUP_PASSWORD: setupPassword,
+            OPENCLAW_STATE_DIR: '/data/state',
+            OPENCLAW_WORKSPACE_DIR: '/data/workspace',
+            OPENCLAW_GATEWAY_TOKEN: gatewayToken,
+            ...(opts.anthropicApiKey ? { ANTHROPIC_API_KEY: opts.anthropicApiKey.trim() } : {}),
+            ...(opts.anthropicAuthToken ? { ANTHROPIC_AUTH_TOKEN: opts.anthropicAuthToken.trim() } : {}),
+            ...(opts.openaiApiKey ? { OPENAI_API_KEY: opts.openaiApiKey.trim() } : {}),
+            ...(opts.selectedModel ? { SELECTED_MODEL: opts.selectedModel.trim() } : {}),
+            // Fallback to platform key if no user key provided
+            ...(!opts.anthropicApiKey && !opts.anthropicAuthToken && process.env.ANTHROPIC_API_KEY
+              ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY.trim() }
+              : {}),
+          },
+          guest: { cpus: 1, memory_mb: 512, cpu_kind: 'shared' },
+          mounts: [{ volume: volume.id, path: '/data' }],
+          services: [
+            {
+              protocol: 'tcp',
+              internal_port: 8080,
+              ports: [
+                { port: 80, handlers: ['http'] },
+                { port: 443, handlers: ['tls', 'http'] },
+              ],
+              checks: [
+                {
+                  type: 'http',
+                  path: '/healthz',
+                  interval: '15s',
+                  timeout: '5s',
+                },
+              ],
+            },
+          ],
+        },
+      }),
     });
   } catch (err) {
     // Cleanup volume + app on machine creation failure
@@ -279,7 +327,7 @@ export async function provisionGateway(opts: {
     throw err;
   }
 
-  // 4. Wait for gateway to become healthy
+  // 5. Wait for gateway to become healthy
   const gatewayUrl = `https://${appName}.fly.dev`;
   let healthy = false;
   for (let i = 0; i < 15; i++) {

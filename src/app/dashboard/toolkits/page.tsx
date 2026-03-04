@@ -243,11 +243,13 @@ export default function ToolkitsPage() {
 
     try {
       const response = await fetch('/api/composio/toolkits', { cache: 'no-store' });
+      if (response.status === 401) { window.location.href = '/login'; return; }
       const payload = (await response.json().catch(() => null)) as ToolkitsApiResponse | { error?: string } | null;
       if (!response.ok) throw new Error(payload && 'error' in payload ? payload.error ?? 'Failed to fetch toolkits.' : 'Failed to fetch toolkits.');
       const records = payload && 'toolkits' in payload && Array.isArray(payload.toolkits) ? payload.toolkits : [];
       setToolkits(orderLikeTrustClaw(records).map(enrichCard));
     } catch {
+      setError('Could not load toolkits from server. Showing defaults.');
       const mockRecords: ToolkitApiRecord[] = TRUSTCLAW_PRIORITY_SLUGS.map((slug) => ({
         key: slug,
         name: getDisplayName(slug),
@@ -308,6 +310,7 @@ export default function ToolkitsPage() {
       const response = await fetch('/api/composio/toolkits/connect', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ appName }),
       });
+      if (response.status === 401) { window.location.href = '/login'; return; }
       const payload = (await response.json().catch(() => null)) as { redirectUrl?: string; error?: string } | null;
       if (!response.ok) throw new Error(payload?.error ?? 'Failed to start connection.');
       if (payload?.redirectUrl) { window.location.href = payload.redirectUrl; return; }
@@ -393,6 +396,7 @@ export default function ToolkitsPage() {
                 onClick={() => setTab(item)}
                 role="tab"
                 aria-selected={tab === item}
+                aria-label={`Filter ${item.toLowerCase()} toolkits`}
                 className={`relative inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-sm font-medium transition-all ${
                   tab === item
                     ? 'border-white/[0.15] bg-white/[0.045] text-zinc-100 shadow-sm'
@@ -413,6 +417,7 @@ export default function ToolkitsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={`Search across ${toolkits.length}+ toolkits...`}
+              aria-label="Search toolkits"
               className="h-9 w-full rounded-md border border-white/[0.15] bg-white/[0.045] pl-9 pr-3 text-sm text-zinc-100 shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.22] focus:ring-1 focus:ring-white/[0.22]"
             />
           </div>

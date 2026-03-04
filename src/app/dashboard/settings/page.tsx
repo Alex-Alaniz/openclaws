@@ -70,6 +70,7 @@ export default function SettingsPage() {
   const fetchInstance = useCallback(async () => {
     try {
       const res = await fetch('/api/instance');
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error('Failed to fetch instance');
       const data = (await res.json()) as { instance: InstanceData | null };
       setInstance(data.instance);
@@ -86,6 +87,7 @@ export default function SettingsPage() {
   const fetchKeys = useCallback(async () => {
     try {
       const res = await fetch('/api/provider-keys');
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) return;
       const data = (await res.json()) as { keys: ProviderKeyInfo[] };
       setProviderKeys(data.keys);
@@ -97,6 +99,7 @@ export default function SettingsPage() {
   const fetchModel = useCallback(async () => {
     try {
       const res = await fetch('/api/model');
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) return;
       const data = (await res.json()) as { selectedModel: string; aiMode: string };
       setSelectedModel(data.selectedModel);
@@ -109,6 +112,7 @@ export default function SettingsPage() {
   const fetchSubscription = useCallback(async () => {
     try {
       const res = await fetch('/api/subscription');
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) return;
       const data = (await res.json()) as { active: boolean; status: string };
       setSubActive(data.active);
@@ -137,6 +141,7 @@ export default function SettingsPage() {
     setInstanceError(null);
     try {
       const res = await fetch('/api/instance', { method: 'POST' });
+      if (res.status === 401) { window.location.href = '/login'; return; }
       const data = (await res.json()) as { instance?: InstanceData; error?: string };
       if (!res.ok) throw new Error(data.error ?? 'Provisioning failed');
       setInstance(data.instance ?? null);
@@ -153,6 +158,7 @@ export default function SettingsPage() {
     setInstanceError(null);
     try {
       const res = await fetch('/api/instance', { method: 'DELETE' });
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? 'Destruction failed');
@@ -173,6 +179,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: modelId }),
       });
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error('Failed to update model');
       setSelectedModel(modelId);
     } catch {
@@ -192,6 +199,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: keyInput.trim() }),
       });
+      if (res.status === 401) { window.location.href = '/login'; return; }
       const data = (await res.json()) as { key?: ProviderKeyInfo; aiMode?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? 'Failed to save key');
       setKeyInput('');
@@ -207,6 +215,7 @@ export default function SettingsPage() {
   const handleDeleteKey = async (provider: string) => {
     try {
       const res = await fetch(`/api/provider-keys?provider=${provider}`, { method: 'DELETE' });
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error('Failed to delete key');
       await fetchKeys();
       await fetchModel();
@@ -223,6 +232,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider }),
       });
+      if (res.status === 401) { window.location.href = '/login'; return; }
       await fetchKeys();
       const data = (await res.json()) as { valid: boolean; error?: string };
       if (!data.valid) {
@@ -240,6 +250,7 @@ export default function SettingsPage() {
       setIsRedirecting(true);
       setError(null);
       const response = await fetch('/api/stripe/checkout', { method: 'POST' });
+      if (response.status === 401) { window.location.href = '/login'; return; }
       if (!response.ok) throw new Error('Failed to create checkout session');
       const data = (await response.json()) as { url?: string };
       if (!data.url) throw new Error('No checkout URL returned');
@@ -365,6 +376,7 @@ export default function SettingsPage() {
               value={keyInput}
               onChange={(e) => { setKeyInput(e.target.value); setKeyError(null); }}
               placeholder="Paste API key or OAuth token (sk-ant-..., sk-...)"
+              aria-label="API key or OAuth token"
               className="flex-1 rounded-lg border border-white/10 bg-black/30 px-4 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
             />
             <button
