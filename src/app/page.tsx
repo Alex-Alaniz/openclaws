@@ -201,7 +201,7 @@ function getLogoUrl(slug: string) {
 }
 
 export default function Home() {
-  const [selectedModel, setSelectedModel] = useState('Claude Opus 4');
+  const [selectedModel, setSelectedModel] = useState('Claude Opus 4.6');
   const [selectedChannel, setSelectedChannel] = useState('Telegram');
 
   const useCases = useMemo(
@@ -276,9 +276,28 @@ export default function Home() {
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 shadow-sm sm:p-8">
               <h2 className="mb-3 text-xl font-semibold text-gray-900 sm:text-2xl">Choose Your Model</h2>
               <div className="space-y-3">
-                {['Claude Opus 4', 'Claude Sonnet 4', 'GPT-4o'].map((model) => (
-                  <button key={model} onClick={() => setSelectedModel(model)} className={`w-full rounded-xl border p-4 text-left ${selectedModel === model ? 'border-gray-900 bg-white' : 'border-gray-200 bg-white/60'}`}>
-                    <p className="font-semibold">{model}</p>
+                {[
+                  { name: 'Claude Opus 4.6', disabled: false },
+                  { name: 'Claude Sonnet 4.6', disabled: false },
+                  { name: 'GPT-5.3', disabled: false },
+                  { name: 'GPT-5.4', disabled: true },
+                ].map((model) => (
+                  <button
+                    key={model.name}
+                    onClick={() => !model.disabled && setSelectedModel(model.name)}
+                    disabled={model.disabled}
+                    className={`w-full rounded-xl border p-4 text-left ${
+                      model.disabled
+                        ? 'cursor-default border-gray-100 bg-gray-50/40 opacity-50'
+                        : selectedModel === model.name
+                          ? 'border-gray-900 bg-white'
+                          : 'border-gray-200 bg-white/60'
+                    }`}
+                  >
+                    <p className="font-semibold">
+                      {model.name}
+                      {model.disabled && <span className="ml-2 text-xs font-normal text-gray-400">Coming Soon</span>}
+                    </p>
                   </button>
                 ))}
               </div>

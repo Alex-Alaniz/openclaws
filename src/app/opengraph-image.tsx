@@ -124,7 +124,7 @@ export default function Image() {
             }}
           >
             <span style={{ color: '#60a5fa', fontSize: 22, fontWeight: 700 }}>Claude</span>
-            <span style={{ color: '#a1a1aa', fontSize: 18 }}>+ GPT-4o</span>
+            <span style={{ color: '#a1a1aa', fontSize: 18 }}>+ GPT-5.3</span>
           </div>
           <div
             style={{

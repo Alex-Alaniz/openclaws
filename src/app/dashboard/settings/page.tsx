@@ -36,9 +36,9 @@ type ProviderKeyInfo = {
 };
 
 const MODELS = [
-  { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4', provider: 'anthropic' },
-  { id: 'claude-opus-4-20250514', label: 'Claude Opus 4', provider: 'anthropic' },
-  { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
+  { id: 'claude-sonnet-4-6-20260301', label: 'Claude Sonnet 4.6', provider: 'anthropic' },
+  { id: 'claude-opus-4-6-20260301', label: 'Claude Opus 4.6', provider: 'anthropic' },
+  { id: 'gpt-5.3', label: 'GPT-5.3', provider: 'openai' },
 ] as const;
 
 export default function SettingsPage() {

@@ -105,16 +105,16 @@ export default function DocsPage() {
             </p>
             <div className="space-y-2">
               <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
-                <p className="text-sm font-semibold text-zinc-200">Claude Sonnet 4 <span className="font-normal text-zinc-500">(default)</span></p>
+                <p className="text-sm font-semibold text-zinc-200">Claude Sonnet 4.6 <span className="font-normal text-zinc-500">(default)</span></p>
                 <p className="text-xs text-zinc-500">Fast, capable, great for everyday tasks. Included with your subscription.</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
-                <p className="text-sm font-semibold text-zinc-200">Claude Opus 4</p>
+                <p className="text-sm font-semibold text-zinc-200">Claude Opus 4.6</p>
                 <p className="text-xs text-zinc-500">Most capable model. Best for complex reasoning and analysis. Included with your subscription.</p>
               </div>
               <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
-                <p className="text-sm font-semibold text-zinc-200">GPT-4o</p>
-                <p className="text-xs text-zinc-500">OpenAI&apos;s multimodal model. Requires your own OpenAI API key.</p>
+                <p className="text-sm font-semibold text-zinc-200">GPT-5.3</p>
+                <p className="text-xs text-zinc-500">OpenAI&apos;s latest model. Requires your own OpenAI API key.</p>
               </div>
             </div>
           </section>
@@ -163,8 +163,8 @@ export default function DocsPage() {
               <div>
                 <h3 className="text-sm font-semibold text-zinc-200">Do I need my own API keys?</h3>
                 <p className="mt-1 text-sm text-zinc-400">
-                  No. Claude Sonnet 4 and Claude Opus 4 are included with your subscription using platform-managed
-                  access. You only need your own key if you want to use GPT-4o or prefer direct billing from the AI provider.
+                  No. Claude Sonnet 4.6 and Claude Opus 4.6 are included with your subscription using platform-managed
+                  access. You only need your own key if you want to use GPT-5.3 or prefer direct billing from the AI provider.
                 </p>
               </div>
               <div>
