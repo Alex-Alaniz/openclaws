@@ -396,12 +396,13 @@ export async function provisionGateway(opts: {
             cmd: [
               'sh', '-c',
               // Seed gateway config with allowed Control UI origin before starting
-              `mkdir -p /data && printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json && exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
+              `mkdir -p /data && printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
             ],
           },
           env: {
             NODE_ENV: 'production',
             NODE_OPTIONS: '--max-old-space-size=1536',
+            PATH: '/data/bin:/data/node_modules/.bin:/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
             OPENCLAW_PREFER_PNPM: '1',
             OPENCLAW_STATE_DIR: '/data',
             OPENCLAW_GATEWAY_TOKEN: gatewayToken,
@@ -533,20 +534,41 @@ async function execOnMachine(
   );
 }
 
-const COMPOSIO_EXEC_SCRIPT = `#!/bin/sh
-ACTION="$1"
-PARAMS="\${2:-{}}"
-[ -z "$ACTION" ] && echo "Usage: composio-exec <ACTION> [JSON_PARAMS]" && exit 1
-APP_NAME=$(echo "$ACTION" | cut -d_ -f1 | tr '[:upper:]' '[:lower:]')
-TMPFILE=$(mktemp)
-cat > "$TMPFILE" << JSONEOF
-{"entityId":"\${COMPOSIO_ENTITY_ID}","appName":"\${APP_NAME}","input":\${PARAMS}}
-JSONEOF
-curl -s -X POST "https://backend.composio.dev/api/v2/actions/\${ACTION}/execute" \\
-  -H "x-api-key: \${COMPOSIO_API_KEY}" \\
-  -H "Content-Type: application/json" \\
-  -d @"$TMPFILE"
-rm -f "$TMPFILE"`;
+const COMPOSIO_EXEC_SCRIPT = `#!/usr/bin/env python3
+import sys, os, json, urllib.request
+
+if len(sys.argv) < 2:
+    print("Usage: composio-exec <ACTION> [JSON_PARAMS]")
+    sys.exit(1)
+
+action = sys.argv[1]
+params = json.loads(sys.argv[2]) if len(sys.argv) > 2 else {}
+app_name = action.split("_")[0].lower()
+
+body = json.dumps({
+    "entityId": os.environ.get("COMPOSIO_ENTITY_ID", ""),
+    "appName": app_name,
+    "input": params
+}).encode()
+
+req = urllib.request.Request(
+    f"https://backend.composio.dev/api/v2/actions/{action}/execute",
+    data=body,
+    headers={
+        "x-api-key": os.environ.get("COMPOSIO_API_KEY", ""),
+        "Content-Type": "application/json",
+        "User-Agent": "composio-exec/1.0"
+    },
+    method="POST"
+)
+
+try:
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        print(resp.read().decode())
+except urllib.error.HTTPError as e:
+    print(json.dumps({"error": e.read().decode(), "status": e.code, "successful": False}))
+except Exception as e:
+    print(json.dumps({"error": str(e), "successful": False}))`;
 
 const COMPOSIO_SKILL_MD = `---
 name: composio
@@ -597,11 +619,13 @@ async function setupComposioOnGateway(appName: string, machineId: string): Promi
     'npm install --save composio-core 2>&1 | tail -3',
   ], 120);
 
-  // Install composio-exec wrapper + symlink CLIs
+  // Install composio-exec wrapper to persistent volume + symlink into PATH
   const b64Script = Buffer.from(COMPOSIO_EXEC_SCRIPT).toString('base64');
   await setup([
-    `echo '${b64Script}' | base64 -d > /usr/local/bin/composio-exec`,
-    'chmod +x /usr/local/bin/composio-exec',
+    'mkdir -p /data/bin',
+    `echo '${b64Script}' | base64 -d > /data/bin/composio-exec`,
+    'chmod +x /data/bin/composio-exec',
+    'ln -sf /data/bin/composio-exec /usr/local/bin/composio-exec',
     'ln -sf /data/node_modules/.bin/composio /usr/local/bin/composio',
   ]);
 
