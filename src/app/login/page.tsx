@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { trackLoginStarted } from '@/lib/analytics';
 
 function GoogleIcon() {
   return (
@@ -45,7 +46,7 @@ export default function LoginPage() {
 
         <div className="space-y-4">
           <button
-            onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+            onClick={() => { trackLoginStarted('google'); signIn('google', { callbackUrl: '/dashboard' }); }}
             className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[14px] bg-white px-4 text-[15px] font-bold text-black transition-all hover:bg-zinc-100 hover:scale-[1.01] active:scale-[0.99]"
           >
             <GoogleIcon />
@@ -53,7 +54,7 @@ export default function LoginPage() {
           </button>
 
           <button
-            onClick={() => signIn('twitter', { callbackUrl: '/dashboard' })}
+            onClick={() => { trackLoginStarted('twitter'); signIn('twitter', { callbackUrl: '/dashboard' }); }}
             className="flex h-[52px] w-full items-center justify-center gap-3 rounded-[14px] border border-white/10 bg-white/[0.03] px-4 text-[15px] font-bold text-white transition-all hover:bg-white/[0.08] hover:scale-[1.01] active:scale-[0.99]"
           >
             <XIcon />

@@ -1,6 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import {
+  trackCheckoutStarted,
+  trackCheckoutCompleted,
+  trackProvisionStarted,
+  trackProvisionSucceeded,
+  trackInstanceDestroyed,
+  trackModelChanged,
+  trackApiKeyAdded,
+  trackApiKeyDeleted,
+} from '@/lib/analytics';
 
 type InstanceData = {
   id: string;
@@ -63,8 +73,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setUpgraded(params.get('upgraded') === 'true');
+    const wasUpgraded = params.get('upgraded') === 'true';
+    setUpgraded(wasUpgraded);
     setCancelled(params.get('cancelled') === 'true');
+    if (wasUpgraded) trackCheckoutCompleted();
   }, []);
 
   const fetchInstance = useCallback(async () => {
@@ -139,12 +151,14 @@ export default function SettingsPage() {
   const handleProvision = async () => {
     setIsProvisioning(true);
     setInstanceError(null);
+    trackProvisionStarted();
     try {
       const res = await fetch('/api/instance', { method: 'POST' });
       if (res.status === 401) { window.location.href = '/login'; return; }
       const data = (await res.json()) as { instance?: InstanceData; error?: string };
       if (!res.ok) throw new Error(data.error ?? 'Provisioning failed');
       setInstance(data.instance ?? null);
+      trackProvisionSucceeded(data.instance?.fly_region);
     } catch (err) {
       setInstanceError(err instanceof Error ? err.message : 'Provisioning failed');
     } finally {
@@ -164,6 +178,7 @@ export default function SettingsPage() {
         throw new Error(data.error ?? 'Destruction failed');
       }
       setInstance(null);
+      trackInstanceDestroyed();
     } catch (err) {
       setInstanceError(err instanceof Error ? err.message : 'Destruction failed');
     } finally {
@@ -182,6 +197,7 @@ export default function SettingsPage() {
       if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error('Failed to update model');
       setSelectedModel(modelId);
+      trackModelChanged(modelId);
     } catch {
       // Error handled by UI state
     } finally {
@@ -204,6 +220,7 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to save key');
       setKeyInput('');
       if (data.aiMode) setAiMode(data.aiMode);
+      if (data.key?.provider) trackApiKeyAdded(data.key.provider);
       await fetchKeys();
     } catch (err) {
       setKeyError(err instanceof Error ? err.message : 'Failed to save key');
@@ -217,6 +234,7 @@ export default function SettingsPage() {
       const res = await fetch(`/api/provider-keys?provider=${provider}`, { method: 'DELETE' });
       if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error('Failed to delete key');
+      trackApiKeyDeleted(provider);
       await fetchKeys();
       await fetchModel();
     } catch {
@@ -249,6 +267,7 @@ export default function SettingsPage() {
     try {
       setIsRedirecting(true);
       setError(null);
+      trackCheckoutStarted();
       const response = await fetch('/api/stripe/checkout', { method: 'POST' });
       if (response.status === 401) { window.location.href = '/login'; return; }
       if (!response.ok) throw new Error('Failed to create checkout session');
@@ -428,22 +447,27 @@ export default function SettingsPage() {
             </div>
 
             {instance.gateway_url && instance.status === 'running' ? (
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="mb-1 text-xs text-zinc-500">Gateway URL</p>
+              <div className="space-y-2">
                 <a
                   href={instance.gateway_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="break-all text-sm text-blue-400 hover:text-blue-300"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
                 >
-                  {instance.gateway_url}
+                  Open OpenClaw
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
                 </a>
+                <p className="break-all text-center text-xs text-zinc-500">{instance.gateway_url}</p>
               </div>
             ) : null}
 
             {instance.gateway_token && instance.status === 'running' ? (
               <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="mb-1 text-xs text-zinc-500">Gateway Token</p>
+                <p className="mb-1 text-xs text-zinc-500">Access Token</p>
                 <div className="flex items-center gap-2">
                   <code className="break-all text-sm text-zinc-200">
                     {instance.gateway_token.slice(0, 8)}...{instance.gateway_token.slice(-4)}
@@ -459,6 +483,7 @@ export default function SettingsPage() {
                     {copiedToken ? 'Copied' : 'Copy'}
                   </button>
                 </div>
+                <p className="mt-2 text-xs text-zinc-600">Use this token when first connecting to your OpenClaw Control UI.</p>
               </div>
             ) : null}
 

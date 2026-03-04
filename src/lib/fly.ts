@@ -26,7 +26,6 @@ export type ProvisionResult = {
   volumeId: string;
   gatewayUrl: string;
   gatewayToken: string;
-  setupPassword: string;
 };
 
 function getFlyToken(): string {
@@ -113,8 +112,16 @@ export async function createMachine(
     image: string;
     env: Record<string, string>;
     volumeId: string;
+    cmd?: string[];
+    cpus?: number;
+    memoryMb?: number;
+    internalPort?: number;
   },
 ): Promise<FlyMachine> {
+  const cpus = config.cpus ?? 2;
+  const memoryMb = config.memoryMb ?? 2048;
+  const internalPort = config.internalPort ?? 3000;
+
   return flyFetch<FlyMachine>(`/apps/${appName}/machines`, {
     method: 'POST',
     body: JSON.stringify({
@@ -122,21 +129,22 @@ export async function createMachine(
       region: config.region,
       config: {
         image: config.image,
+        ...(config.cmd ? { init: { cmd: config.cmd } } : {}),
         env: config.env,
-        guest: { cpus: 1, memory_mb: 512, cpu_kind: 'shared' },
+        guest: { cpus, memory_mb: memoryMb, cpu_kind: 'shared' },
         mounts: [{ volume: config.volumeId, path: '/data' }],
         services: [
           {
             protocol: 'tcp',
-            internal_port: 8080,
+            internal_port: internalPort,
             ports: [
               { port: 80, handlers: ['http'] },
               { port: 443, handlers: ['tls', 'http'] },
             ],
             checks: [
               {
-                type: 'http',
-                path: '/healthz',
+                type: 'tcp',
+                port: internalPort,
                 interval: '15s',
                 timeout: '5s',
               },
@@ -176,7 +184,7 @@ export async function updateMachineEnv(
     `/apps/${appName}/machines/${machineId}`,
   );
 
-  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'OPENAI_API_KEY', 'SELECTED_MODEL']);
+  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_OAUTH_TOKEN', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY']);
   const safeUpdates: Record<string, string> = {};
   for (const [k, v] of Object.entries(envUpdates)) {
     if (ALLOWED_ENV_KEYS.has(k)) safeUpdates[k] = v;
@@ -210,16 +218,14 @@ export async function provisionGateway(opts: {
   userEmail: string;
   region?: string;
   anthropicApiKey?: string;
-  anthropicAuthToken?: string;
+  anthropicOauthToken?: string;
   openaiApiKey?: string;
-  selectedModel?: string;
 }): Promise<ProvisionResult> {
   const prefix = getAppPrefix();
   const slug = slugify(opts.userEmail);
   const appName = `${prefix}-${slug}`;
   const region = opts.region ?? 'iad';
   const gatewayToken = randomUUID();
-  const setupPassword = randomUUID();
 
   // Provisioning operations get a longer timeout (60s)
   const provisionSignal = AbortSignal.timeout(60_000);
@@ -262,7 +268,7 @@ export async function provisionGateway(opts: {
       body: JSON.stringify({
         name: `data_${slug.replace(/-/g, '_')}`,
         region,
-        size_gb: 1,
+        size_gb: 3,
       }),
     });
   } catch (err) {
@@ -273,7 +279,7 @@ export async function provisionGateway(opts: {
 
   let machine: FlyMachine;
   try {
-    // 4. Create machine with OpenClaw Gateway
+    // 4. Create machine with real OpenClaw
     machine = await flyFetch<FlyMachine>(`/apps/${appName}/machines`, {
       method: 'POST',
       signal: provisionSignal,
@@ -281,36 +287,38 @@ export async function provisionGateway(opts: {
         name: `gw-${slug}`,
         region,
         config: {
-          image: 'ghcr.io/alex-alaniz/openclaw-gateway:latest',
+          image: 'ghcr.io/openclaw/openclaw:main',
+          init: {
+            cmd: ['node', 'dist/index.js', 'gateway', '--allow-unconfigured', '--port', '3000', '--bind', 'lan'],
+          },
           env: {
-            PORT: '8080',
-            SETUP_PASSWORD: setupPassword,
-            OPENCLAW_STATE_DIR: '/data/state',
-            OPENCLAW_WORKSPACE_DIR: '/data/workspace',
+            NODE_ENV: 'production',
+            NODE_OPTIONS: '--max-old-space-size=1536',
+            OPENCLAW_PREFER_PNPM: '1',
+            OPENCLAW_STATE_DIR: '/data',
             OPENCLAW_GATEWAY_TOKEN: gatewayToken,
             ...(opts.anthropicApiKey ? { ANTHROPIC_API_KEY: opts.anthropicApiKey.trim() } : {}),
-            ...(opts.anthropicAuthToken ? { ANTHROPIC_AUTH_TOKEN: opts.anthropicAuthToken.trim() } : {}),
+            ...(opts.anthropicOauthToken ? { ANTHROPIC_OAUTH_TOKEN: opts.anthropicOauthToken.trim() } : {}),
             ...(opts.openaiApiKey ? { OPENAI_API_KEY: opts.openaiApiKey.trim() } : {}),
-            ...(opts.selectedModel ? { SELECTED_MODEL: opts.selectedModel.trim() } : {}),
             // Fallback to platform key if no user key provided
-            ...(!opts.anthropicApiKey && !opts.anthropicAuthToken && process.env.ANTHROPIC_API_KEY
+            ...(!opts.anthropicApiKey && !opts.anthropicOauthToken && process.env.ANTHROPIC_API_KEY
               ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY.trim() }
               : {}),
           },
-          guest: { cpus: 1, memory_mb: 512, cpu_kind: 'shared' },
+          guest: { cpus: 2, memory_mb: 2048, cpu_kind: 'shared' },
           mounts: [{ volume: volume.id, path: '/data' }],
           services: [
             {
               protocol: 'tcp',
-              internal_port: 8080,
+              internal_port: 3000,
               ports: [
                 { port: 80, handlers: ['http'] },
                 { port: 443, handlers: ['tls', 'http'] },
               ],
               checks: [
                 {
-                  type: 'http',
-                  path: '/healthz',
+                  type: 'tcp',
+                  port: 3000,
                   interval: '15s',
                   timeout: '5s',
                 },
@@ -327,15 +335,16 @@ export async function provisionGateway(opts: {
     throw err;
   }
 
-  // 5. Wait for gateway to become healthy
+  // 5. Wait for gateway to become healthy (real OpenClaw may take 30-60s)
   const gatewayUrl = `https://${appName}.fly.dev`;
   let healthy = false;
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 30; i++) {
     try {
-      const healthRes = await fetch(`${gatewayUrl}/healthz`, {
+      // Any response (even 401) means the server is up
+      const res = await fetch(gatewayUrl, {
         signal: AbortSignal.timeout(5000),
       });
-      if (healthRes.ok) {
+      if (res.status > 0) {
         healthy = true;
         break;
       }
@@ -355,7 +364,6 @@ export async function provisionGateway(opts: {
     volumeId: volume.id,
     gatewayUrl,
     gatewayToken,
-    setupPassword,
   };
 }
 

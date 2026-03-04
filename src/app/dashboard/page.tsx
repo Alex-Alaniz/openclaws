@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { trackMessageSent } from '@/lib/analytics';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -72,6 +73,7 @@ export default function DashboardPage() {
     setDraft('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    trackMessageSent();
     setIsLoading(true);
 
     try {
@@ -144,9 +146,36 @@ export default function DashboardPage() {
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               {gatewayReady ? (
-                <div className="text-center">
-                  <h2 className="mb-2 text-lg font-semibold text-zinc-200">OpenClaw</h2>
-                  <p className="text-sm text-zinc-500">Send a message to start chatting with your AI assistant.</p>
+                <div className="w-full max-w-md space-y-6 px-4">
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10">
+                      <svg className="h-7 w-7 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </div>
+                    <h2 className="mb-2 text-lg font-bold text-zinc-100">Your OpenClaw is running</h2>
+                    <p className="mb-4 text-sm text-zinc-400">
+                      Access the full experience — browser automation, 5400+ skills, messaging channels, and persistent memory.
+                    </p>
+                    <a
+                      href={instance!.gateway_url!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
+                    >
+                      Open your OpenClaw
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-zinc-500">Or send a quick message below</p>
+                  </div>
                 </div>
               ) : (
                 <div className="w-full max-w-md space-y-4 px-4">
@@ -190,11 +219,11 @@ export default function DashboardPage() {
                     <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs font-bold text-zinc-300">3</div>
                       <div>
-                        <p className="text-sm font-semibold text-zinc-200">Connect your tools</p>
-                        <p className="mt-0.5 text-xs text-zinc-500">Browse 1000+ integrations — Gmail, Slack, GitHub, and more.</p>
-                        <Link href="/dashboard/toolkits" className="mt-2 inline-block text-xs font-semibold text-zinc-400 hover:text-zinc-200">
-                          Browse Toolkits →
-                        </Link>
+                        <p className="text-sm font-semibold text-zinc-200">Open your OpenClaw</p>
+                        <p className="mt-0.5 text-xs text-zinc-500">Access your full AI assistant — browse the web, automate tasks, and more.</p>
+                        <p className="mt-2 text-xs text-zinc-600">
+                          Gateway URL appears here after deployment.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -243,7 +272,7 @@ export default function DashboardPage() {
               disabled={!gatewayReady}
               aria-label="Type your message"
               className="max-h-[200px] min-h-[44px] w-full resize-none rounded-[14px] border border-white/[0.1] bg-white/[0.045] px-3 py-2 text-sm text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.22] focus:ring-1 focus:ring-white/[0.22] disabled:opacity-50"
-              placeholder={gatewayReady ? 'Ask me anything...' : 'Deploy a gateway to start chatting...'}
+              placeholder={gatewayReady ? 'Quick message...' : 'Deploy a gateway to start chatting...'}
             />
             <button
               onClick={sendMessage}

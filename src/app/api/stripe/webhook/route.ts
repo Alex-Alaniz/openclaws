@@ -58,7 +58,7 @@ export async function POST(req: Request) {
                 fly_volume_id: result.volumeId,
                 gateway_url: result.gatewayUrl,
                 gateway_token: result.gatewayToken,
-                setup_password: result.setupPassword,
+                setup_password: '',
               });
             })
             .catch(async (err) => {

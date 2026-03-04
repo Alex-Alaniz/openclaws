@@ -30,26 +30,36 @@ export async function POST(req: Request) {
   }
 
   try {
-    const gatewayRes = await fetch(`${instance.gateway_url}/api/chat`, {
+    // Real OpenClaw exposes an OpenAI-compatible /v1/chat/completions endpoint
+    const gatewayRes = await fetch(`${instance.gateway_url}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${instance.gateway_token}`,
       },
       body: JSON.stringify({
-        message: body.message,
-        conversationId: body.conversationId ?? 'default',
-        ...(body.model ? { model: body.model } : {}),
+        model: body.model ?? 'default',
+        messages: [{ role: 'user', content: body.message }],
       }),
     });
 
     if (!gatewayRes.ok) {
+      // 404/405 means the endpoint isn't enabled on this gateway yet
+      if (gatewayRes.status === 404 || gatewayRes.status === 405) {
+        return NextResponse.json({
+          message: 'Quick chat is not available yet. Click "Open your OpenClaw" above for the full experience — browser automation, skills, channels, and more.',
+        });
+      }
       const err = await gatewayRes.json().catch(() => ({ error: 'Gateway error' })) as { error?: string };
       return NextResponse.json({ error: err.error ?? 'Gateway error' }, { status: gatewayRes.status });
     }
 
-    const data = await gatewayRes.json();
-    return NextResponse.json(data);
+    // Extract reply from OpenAI-compatible response format
+    const data = await gatewayRes.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const message = data.choices?.[0]?.message?.content ?? '';
+    return NextResponse.json({ message });
   } catch (err) {
     Sentry.captureException(err);
     return NextResponse.json({ error: 'Failed to reach gateway' }, { status: 502 });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { trackToolkitConnectStarted, trackToolkitConnectCompleted } from '@/lib/analytics';
 
 type Tab = 'All' | 'Connected';
 type Status = 'connect' | 'connected' | 'active';
@@ -306,6 +307,7 @@ export default function ToolkitsPage() {
   const handleConnect = useCallback(async (toolkitKey: string, appName: string) => {
     setPendingConnectKey(toolkitKey);
     setError(null);
+    trackToolkitConnectStarted(toolkitKey);
     try {
       const response = await fetch('/api/composio/toolkits/connect', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ appName }),
@@ -313,7 +315,8 @@ export default function ToolkitsPage() {
       if (response.status === 401) { window.location.href = '/login'; return; }
       const payload = (await response.json().catch(() => null)) as { redirectUrl?: string; error?: string } | null;
       if (!response.ok) throw new Error(payload?.error ?? 'Failed to start connection.');
-      if (payload?.redirectUrl) { window.location.href = payload.redirectUrl; return; }
+      if (payload?.redirectUrl) { trackToolkitConnectCompleted(toolkitKey); window.location.href = payload.redirectUrl; return; }
+      trackToolkitConnectCompleted(toolkitKey);
       await fetchToolkits({ silent: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start connection.');

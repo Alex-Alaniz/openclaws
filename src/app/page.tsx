@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { trackSignupClicked } from '@/lib/analytics';
 
 type Integration = {
   name: string;
@@ -265,7 +266,7 @@ export default function Home() {
             <Image src="/logos/powered/chatgpt.svg" alt="ChatGPT" width={18} height={18} />
             <Image src="/logos/powered/gemini.png" alt="Gemini" width={18} height={18} />
           </div>
-          <Link href="/login" className="inline-flex items-center rounded-md bg-[#DC2626] px-8 py-3 font-semibold hover:bg-red-700">Get Started</Link>
+          <Link href="/login" onClick={() => trackSignupClicked('hero')} className="inline-flex items-center rounded-md bg-[#DC2626] px-8 py-3 font-semibold hover:bg-red-700">Get Started</Link>
         </div>
       </header>
 
@@ -303,7 +304,7 @@ export default function Home() {
                 <li className="flex items-start gap-2"><span className="mt-0.5 text-green-600">&#10003;</span>BYO API keys or use managed access</li>
                 <li className="flex items-start gap-2"><span className="mt-0.5 text-green-600">&#10003;</span>Telegram, Discord &amp; WhatsApp channels</li>
               </ul>
-              <Link href="/login" className="block w-full rounded-lg bg-[#DC2626] px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-red-700">
+              <Link href="/login" onClick={() => trackSignupClicked('pricing')} className="block w-full rounded-lg bg-[#DC2626] px-6 py-3.5 text-center text-base font-semibold text-white hover:bg-red-700">
                 Get Started
               </Link>
             </div>

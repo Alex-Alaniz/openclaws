@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 
   // Fetch user's provider keys to pass to gateway
   let anthropicApiKey: string | undefined;
-  let anthropicAuthToken: string | undefined;
+  let anthropicOauthToken: string | undefined;
   let openaiApiKey: string | undefined;
 
   try {
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
       if (!decrypted) continue;
 
       if (keyInfo.provider === 'anthropic' && keyInfo.keyType === 'oauth_token') {
-        anthropicAuthToken = decrypted.key;
+        anthropicOauthToken = decrypted.key;
       } else if (keyInfo.provider === 'anthropic') {
         anthropicApiKey = decrypted.key;
       } else if (keyInfo.provider === 'openai') {
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       userEmail: email,
       region,
       anthropicApiKey,
-      anthropicAuthToken,
+      anthropicOauthToken,
       openaiApiKey,
     });
 
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
       fly_volume_id: result.volumeId,
       gateway_url: result.gatewayUrl,
       gateway_token: result.gatewayToken,
-      setup_password: result.setupPassword,
+      setup_password: '',
     });
 
     const instance = await getInstanceByUserId(email);
