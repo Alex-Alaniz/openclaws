@@ -383,6 +383,11 @@ export async function provisionGateway(opts: {
           allowInsecureAuth: true,
         },
       },
+      skills: {
+        entries: {
+          composio: { enabled: true },
+        },
+      },
     });
     machine = await flyFetch<FlyMachine>(`/apps/${appName}/machines`, {
       method: 'POST',
@@ -395,8 +400,8 @@ export async function provisionGateway(opts: {
           init: {
             cmd: [
               'sh', '-c',
-              // Seed gateway config with allowed Control UI origin before starting
-              `mkdir -p /data && printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
+              // Seed gateway config; rm -f first because new OpenClaw image runs as node (uid 1000) and can't overwrite root-owned files on volume
+              `rm -f /data/openclaw.json 2>/dev/null; printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
             ],
           },
           env: {
