@@ -259,6 +259,7 @@ export default function Home() {
           <div className="hero-gradient-orb orb-3" />
         </div>
         <div className="relative z-10 mx-auto max-w-5xl px-6 py-28 text-center md:py-40">
+          <Image src="/openclaw.svg" alt="OpenClaws" width={96} height={96} className="mx-auto mb-6" priority />
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">Connect All Your Tools<span className="block text-gray-400">In Under 1 Minute</span></h1>
           <p className="mx-auto mb-8 max-w-3xl text-base md:text-lg">Your own 24/7 AI assistant with 1000+ integrations. Powered by OpenClaws.</p>
           <div className="mb-8 flex flex-wrap items-center justify-center gap-3 md:gap-4">
