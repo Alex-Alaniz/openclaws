@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export type InstanceStatus = 'provisioning' | 'running' | 'stopped' | 'error' | 'deleting';
@@ -24,6 +25,7 @@ export type Instance = {
 };
 
 let supabaseClient: SupabaseClient | null = null;
+let userClientCache: Record<string, SupabaseClient> = {};
 
 export function getSupabase(): SupabaseClient {
   if (supabaseClient) return supabaseClient;
@@ -37,6 +39,66 @@ export function getSupabase(): SupabaseClient {
 
   supabaseClient = createClient(url, key);
   return supabaseClient;
+}
+
+function base64Url(input: string | Buffer): string {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function signUserJwt(email: string, jwtSecret: string): string {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const exp = Math.floor(Date.now() / 1000) + 15 * 60; // 15 minutes
+  const payload = { email, role: 'authenticated', aud: 'authenticated', exp };
+
+  const headerSegment = base64Url(JSON.stringify(header));
+  const payloadSegment = base64Url(JSON.stringify(payload));
+  const signingInput = `${headerSegment}.${payloadSegment}`;
+
+  const signature = crypto
+    .createHmac('sha256', jwtSecret)
+    .update(signingInput)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `${signingInput}.${signature}`;
+}
+
+/**
+ * Returns a Supabase client scoped to the given user by signing a short-lived JWT
+ * with the Supabase JWT secret. The payload sets email + the authenticated role
+ * so that RLS policies using user_id/email can evaluate once routes migrate to
+ * anon-key access. Currently all routes still use the service_role client, but
+ * this provides a safe migration path.
+ */
+export function getUserSupabase(email: string): SupabaseClient {
+  if (userClientCache[email]) return userClientCache[email];
+
+  const url = process.env.SUPABASE_URL?.trim();
+  const anonKey = process.env.SUPABASE_ANON_KEY?.trim();
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET?.trim();
+
+  if (!url || !anonKey || !jwtSecret) {
+    throw new Error('SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_JWT_SECRET must be set');
+  }
+
+  const token = signUserJwt(email, jwtSecret);
+
+  const client = createClient(url, anonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+
+  userClientCache[email] = client;
+  return client;
 }
 
 export async function getInstanceByUserId(userId: string): Promise<Instance | null> {

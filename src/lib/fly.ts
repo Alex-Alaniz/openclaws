@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import * as Sentry from '@sentry/nextjs';
 import { createSubdomainCname, deleteSubdomainCname } from '@/lib/porkbun';
 import { getSupabase } from '@/lib/supabase';
+import { issueProxyToken } from '@/lib/proxy-auth';
 
 const FLY_API_BASE = 'https://api.machines.dev/v1';
 const FLY_GQL_URL = 'https://api.fly.io/graphql';
@@ -217,7 +218,7 @@ export async function updateMachineEnv(
     `/apps/${appName}/machines/${machineId}`,
   );
 
-  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_OAUTH_TOKEN', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'COMPOSIO_API_KEY', 'COMPOSIO_ENTITY_ID', 'SELECTED_MODEL']);
+  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_BASE_URL', 'ANTHROPIC_OAUTH_TOKEN', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'COMPOSIO_API_KEY', 'COMPOSIO_ENTITY_ID', 'SELECTED_MODEL']);
   const safeUpdates: Record<string, string> = {};
   for (const [k, v] of Object.entries(envUpdates)) {
     if (ALLOWED_ENV_KEYS.has(k)) safeUpdates[k] = v;
@@ -414,9 +415,12 @@ export async function provisionGateway(opts: {
             ...(opts.anthropicApiKey ? { ANTHROPIC_API_KEY: opts.anthropicApiKey.trim() } : {}),
             ...(opts.anthropicOauthToken ? { ANTHROPIC_OAUTH_TOKEN: opts.anthropicOauthToken.trim() } : {}),
             ...(opts.openaiApiKey ? { OPENAI_API_KEY: opts.openaiApiKey.trim() } : {}),
-            // Fallback to platform key if no user key provided
+            // Managed mode: proxy through OpenClaws instead of injecting platform key
             ...(!opts.anthropicApiKey && !opts.anthropicOauthToken && process.env.ANTHROPIC_API_KEY
-              ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY.trim() }
+              ? {
+                  ANTHROPIC_BASE_URL: `${process.env.NEXTAUTH_URL ?? 'https://openclaws.biz'}/api/proxy/anthropic`,
+                  ANTHROPIC_API_KEY: issueProxyToken(opts.userEmail, 'anthropic', 30 * 24 * 60 * 60 * 1000),
+                }
               : {}),
             // Composio toolkit bridge — platform key + per-user entity
             ...(process.env.COMPOSIO_API_KEY
