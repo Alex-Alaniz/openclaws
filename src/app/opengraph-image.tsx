@@ -46,7 +46,7 @@ export default function Image() {
             borderRadius: 999,
             border: '1px solid rgba(220,38,38,0.3)',
             background: 'rgba(220,38,38,0.08)',
-            marginBottom: 24,
+            marginBottom: 32,
             fontSize: 16,
             color: '#f87171',
             fontWeight: 500,
@@ -60,10 +60,32 @@ export default function Image() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 16,
+            gap: 24,
             marginBottom: 8,
           }}
         >
+          {/* Logo container */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 96,
+              height: 96,
+              borderRadius: 20,
+              border: '2px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.05)',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://openclaws.biz/openclaw.png"
+              alt="OpenClaws"
+              width={72}
+              height={72}
+              style={{ borderRadius: 8 }}
+            />
+          </div>
           <div
             style={{
               fontSize: 80,
@@ -82,7 +104,7 @@ export default function Image() {
           style={{
             fontSize: 32,
             color: '#d4d4d8',
-            marginTop: 8,
+            marginTop: 16,
             fontWeight: 400,
           }}
         >
