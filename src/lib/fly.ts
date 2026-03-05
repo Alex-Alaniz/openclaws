@@ -1,4 +1,4 @@
-import { randomUUID, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 import * as Sentry from '@sentry/nextjs';
 import { createSubdomainCname, deleteSubdomainCname } from '@/lib/porkbun';
 import { getSupabase } from '@/lib/supabase';
@@ -217,7 +217,7 @@ export async function updateMachineEnv(
     `/apps/${appName}/machines/${machineId}`,
   );
 
-  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_OAUTH_TOKEN', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'COMPOSIO_API_KEY', 'COMPOSIO_ENTITY_ID']);
+  const ALLOWED_ENV_KEYS = new Set(['ANTHROPIC_API_KEY', 'ANTHROPIC_OAUTH_TOKEN', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'COMPOSIO_API_KEY', 'COMPOSIO_ENTITY_ID', 'SELECTED_MODEL']);
   const safeUpdates: Record<string, string> = {};
   for (const [k, v] of Object.entries(envUpdates)) {
     if (ALLOWED_ENV_KEYS.has(k)) safeUpdates[k] = v;
@@ -257,7 +257,7 @@ export async function provisionGateway(opts: {
 }): Promise<ProvisionResult> {
   const prefix = getAppPrefix();
   const region = opts.region ?? 'iad';
-  const gatewayToken = randomUUID();
+  const gatewayToken = randomBytes(32).toString('hex');
 
   // Provisioning operations get a longer timeout (60s)
   const provisionSignal = AbortSignal.timeout(60_000);
@@ -380,7 +380,7 @@ export async function provisionGateway(opts: {
       gateway: {
         controlUi: {
           allowedOrigins: [`https://${slug}.openclaws.biz`, `https://${appName}.fly.dev`],
-          allowInsecureAuth: true,
+          allowInsecureAuth: false,
         },
       },
       skills: {

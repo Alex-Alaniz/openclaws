@@ -22,14 +22,17 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us-assets.i.posthog.com",
+              "script-src 'self' 'unsafe-inline' https://us-assets.i.posthog.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' https://logos.composio.dev https://unavatar.io data: blob:",
               "font-src 'self'",
               "connect-src 'self' https://*.sentry.io https://*.posthog.com https://us.i.posthog.com",
               "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "worker-src 'self' blob:",
             ].join('; '),
           },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
         ],
       },
     ];

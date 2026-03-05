@@ -27,6 +27,12 @@ export async function POST(req: Request) {
 
     if (event.type === 'checkout.session.completed') {
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
+
+      // Only process subscription checkouts matching our price ID
+      if (checkoutSession.mode !== 'subscription') {
+        return NextResponse.json({ received: true }, { status: 200 });
+      }
+
       const userEmail =
         checkoutSession.customer_email ??
         checkoutSession.metadata?.userEmail ??
@@ -64,7 +70,7 @@ export async function POST(req: Request) {
             .catch(async (err) => {
               Sentry.captureException(err);
               await updateInstanceStatus(userEmail.toLowerCase(), 'error', {
-                error_message: err instanceof Error ? err.message : 'Provisioning failed',
+                error_message: 'Gateway provisioning failed',
               }).catch(() => {});
             });
         } catch (err) {
@@ -115,6 +121,12 @@ export async function POST(req: Request) {
 
     if (event.type === 'charge.refunded') {
       const charge = event.data.object as Stripe.Charge;
+
+      // Only tear down on full refund — partial refunds should not destroy infrastructure
+      if (charge.amount_refunded < charge.amount) {
+        return NextResponse.json({ received: true }, { status: 200 });
+      }
+
       const customer = charge.customer
         ? await stripe.customers.retrieve(charge.customer as string)
         : null;

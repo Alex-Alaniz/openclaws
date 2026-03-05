@@ -15,11 +15,8 @@ import {
 type InstanceData = {
   id: string;
   user_id: string;
-  fly_app_name: string | null;
-  fly_machine_id: string | null;
   fly_region: string;
   gateway_url: string | null;
-  gateway_token: string | null;
   status: string;
   error_message: string | null;
   selected_model: string;

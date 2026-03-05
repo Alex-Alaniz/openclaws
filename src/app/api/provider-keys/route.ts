@@ -42,8 +42,8 @@ export async function POST(req: Request) {
   if (!rl.success) return rateLimitResponse(rl);
 
   const body = await req.json().catch(() => ({})) as { key?: string };
-  if (!body.key || typeof body.key !== 'string') {
-    return NextResponse.json({ error: 'key is required' }, { status: 400 });
+  if (!body.key || typeof body.key !== 'string' || body.key.length > 500) {
+    return NextResponse.json({ error: 'key is required and must be under 500 characters' }, { status: 400 });
   }
 
   const detected = detectKeyType(body.key);
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       if (decrypted) {
         const envUpdate: Record<string, string> = {};
         if (detected.provider === 'anthropic' && detected.keyType === 'oauth_token') {
-          envUpdate.ANTHROPIC_AUTH_TOKEN = decrypted.key;
+          envUpdate.ANTHROPIC_OAUTH_TOKEN = decrypted.key;
         } else if (detected.provider === 'anthropic') {
           envUpdate.ANTHROPIC_API_KEY = decrypted.key;
         } else if (detected.provider === 'openai') {
@@ -89,8 +89,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ key: keyInfo, aiMode });
   } catch (error) {
     Sentry.captureException(error);
-    const message = error instanceof Error ? error.message : 'Failed to store key';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to store key' }, { status: 500 });
   }
 }
 

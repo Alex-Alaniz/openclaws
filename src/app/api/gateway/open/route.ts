@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { authOptions, getUserEmail } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getInstanceByUserId } from '@/lib/supabase';
+import { getSubscriptionStatus } from '@/lib/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,17 @@ export async function GET(req: Request) {
   if (!rl.success) return rateLimitResponse(rl);
 
   try {
+    // Verify subscription is still active before granting gateway access
+    try {
+      const sub = await getSubscriptionStatus(email);
+      if (!sub.active) {
+        const baseUrl = new URL(req.url).origin;
+        return NextResponse.redirect(`${baseUrl}/dashboard/settings?expired=true`);
+      }
+    } catch {
+      // If Stripe check fails, still allow access (gateway is already running)
+    }
+
     const instance = await getInstanceByUserId(email);
 
     if (!instance?.gateway_url || !instance?.gateway_token) {

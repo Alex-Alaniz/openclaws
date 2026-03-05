@@ -50,8 +50,8 @@ export async function POST(req: Request) {
           message: 'Quick chat is not available yet. Click "Open your OpenClaw" above for the full experience — browser automation, skills, channels, and more.',
         });
       }
-      const err = await gatewayRes.json().catch(() => ({ error: 'Gateway error' })) as { error?: string };
-      return NextResponse.json({ error: err.error ?? 'Gateway error' }, { status: gatewayRes.status });
+      await gatewayRes.text().catch(() => {});
+      return NextResponse.json({ error: 'Gateway error' }, { status: 502 });
     }
 
     // Extract reply from OpenAI-compatible response format

@@ -31,8 +31,8 @@ export async function GET() {
   try {
     const instance = await getInstanceByUserId(email);
     if (instance) {
-      // Strip sensitive fields from response
-      const { setup_password, gateway_token, ...safe } = instance;
+      // Strip sensitive and infrastructure fields from response
+      const { setup_password, gateway_token, fly_app_name, fly_machine_id, fly_volume_id, ...safe } = instance;
       return NextResponse.json({ instance: safe });
     }
     return NextResponse.json({ instance: null });
@@ -64,7 +64,10 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     Sentry.captureException(err);
-    // Allow provisioning if Stripe is unreachable — webhook already gates the primary flow
+    return NextResponse.json(
+      { error: 'Unable to verify subscription status. Please try again.' },
+      { status: 503 },
+    );
   }
 
   // Parse optional region
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
         // Row exists and is running/provisioning → 409
         const existing = await getInstanceByUserId(email);
         if (existing) {
-          const { setup_password, gateway_token, ...safe } = existing;
+          const { setup_password, gateway_token, fly_app_name: _fa, fly_machine_id: _fm, fly_volume_id: _fv, ...safe } = existing;
           return NextResponse.json(
             { error: 'Instance already exists', instance: safe },
             { status: 409 },
@@ -174,14 +177,13 @@ export async function POST(req: Request) {
 
     const instance = await getInstanceByUserId(email);
     if (instance) {
-      const { setup_password: _sp, gateway_token: _gt, ...safe } = instance;
+      const { setup_password: _sp, gateway_token: _gt, fly_app_name: _fa2, fly_machine_id: _fm2, fly_volume_id: _fv2, ...safe } = instance;
       return NextResponse.json({ instance: safe });
     }
     return NextResponse.json({ instance: null });
   } catch (error) {
     Sentry.captureException(error);
-    const internalMessage = error instanceof Error ? error.message : 'Provisioning failed';
-    await updateInstanceStatus(email, 'error', { error_message: internalMessage }).catch(() => {});
+    await updateInstanceStatus(email, 'error', { error_message: 'Gateway provisioning failed' }).catch(() => {});
     return NextResponse.json({ error: 'Gateway provisioning failed. Please try again.' }, { status: 500 });
   }
 }
@@ -220,8 +222,7 @@ export async function DELETE() {
     }
   } catch (error) {
     Sentry.captureException(error);
-    const internalMessage = error instanceof Error ? error.message : 'Destruction failed';
-    await updateInstanceStatus(email, 'error', { error_message: internalMessage }).catch(() => {});
+    await updateInstanceStatus(email, 'error', { error_message: 'Gateway destruction failed' }).catch(() => {});
     return NextResponse.json({ error: 'Gateway destruction failed. Please try again.' }, { status: 500 });
   }
 

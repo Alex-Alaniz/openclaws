@@ -11,7 +11,8 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${session.user.email}:/api/stripe/checkout`, 5, 60_000);
+  const email = session.user.email.trim().toLowerCase();
+  const rl = rateLimit(`${email}:/api/stripe/checkout`, 5, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
