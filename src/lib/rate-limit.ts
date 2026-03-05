@@ -1,30 +1,9 @@
 import { NextResponse } from 'next/server';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
-// In-memory sliding window rate limiter.
-// Works within a single Vercel serverless isolate — provides protection
-// against rapid-fire abuse from warm connections. Upgrade path: swap
-// this Map for @upstash/ratelimit + Redis for cross-isolate persistence.
-
-const store = new Map<string, number[]>();
-
-// Clean up expired entries every 60s to prevent memory leaks
-let lastCleanup = Date.now();
-const CLEANUP_INTERVAL = 60_000;
-
-function cleanup(now: number) {
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
-  lastCleanup = now;
-  for (const [key, timestamps] of store) {
-    // Remove entries older than 1 hour (max window we use)
-    const cutoff = now - 3_600_000;
-    const filtered = timestamps.filter((t) => t > cutoff);
-    if (filtered.length === 0) {
-      store.delete(key);
-    } else {
-      store.set(key, filtered);
-    }
-  }
-}
+// Distributed rate limiter using Upstash Redis.
+// Falls back to in-memory Map when Redis is unavailable (cold start, outage).
 
 export type RateLimitResult = {
   success: boolean;
@@ -33,26 +12,65 @@ export type RateLimitResult = {
   windowMs: number;
 };
 
-export function rateLimit(
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+
+// Cache Ratelimit instances per (limit, windowMs) combo
+const limiterCache = new Map<string, Ratelimit>();
+
+// In-memory fallback for when Redis is unavailable
+const fallbackStore = new Map<string, number[]>();
+
+function getLimiter(limit: number, windowMs: number): Ratelimit | null {
+  if (!redis) return null;
+  const key = `${limit}:${windowMs}`;
+  let limiter = limiterCache.get(key);
+  if (limiter) return limiter;
+
+  const windowSeconds = Math.max(1, Math.round(windowMs / 1000));
+  limiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
+    prefix: 'openclaws:rl',
+  });
+  limiterCache.set(key, limiter);
+  return limiter;
+}
+
+function fallbackRateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
+  const now = Date.now();
+  const timestamps = fallbackStore.get(key) ?? [];
+  const recent = timestamps.filter((t) => t > now - windowMs);
+  if (recent.length >= limit) {
+    fallbackStore.set(key, recent);
+    return { success: false, remaining: 0, limit, windowMs };
+  }
+  recent.push(now);
+  fallbackStore.set(key, recent);
+  return { success: true, remaining: limit - recent.length, limit, windowMs };
+}
+
+export async function rateLimit(
   key: string,
   limit: number,
   windowMs: number,
-): RateLimitResult {
-  const now = Date.now();
-  cleanup(now);
+): Promise<RateLimitResult> {
+  const limiter = getLimiter(limit, windowMs);
+  if (!limiter) return fallbackRateLimit(key, limit, windowMs);
 
-  const timestamps = store.get(key) ?? [];
-  const windowStart = now - windowMs;
-  const recent = timestamps.filter((t) => t > windowStart);
-
-  if (recent.length >= limit) {
-    store.set(key, recent);
-    return { success: false, remaining: 0, limit, windowMs };
+  try {
+    const res = await limiter.limit(key);
+    return {
+      success: res.success,
+      remaining: res.remaining,
+      limit,
+      windowMs,
+    };
+  } catch {
+    // Redis unavailable — fall back to in-memory
+    return fallbackRateLimit(key, limit, windowMs);
   }
-
-  recent.push(now);
-  store.set(key, recent);
-  return { success: true, remaining: limit - recent.length, limit, windowMs };
 }
 
 export function rateLimitResponse(result: RateLimitResult): NextResponse {

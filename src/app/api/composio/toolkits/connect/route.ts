@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const email = session.user.email?.trim().toLowerCase() ?? 'anon';
-  const rl = rateLimit(`${email}:/api/composio/toolkits/connect`, 10, 60_000);
+  const rl = await rateLimit(`${email}:/api/composio/toolkits/connect`, 10, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   if (!isComposioConfigured()) {

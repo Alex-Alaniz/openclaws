@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:/api/provider-keys/validate`, 10, 60_000);
+  const rl = await rateLimit(`${email}:/api/provider-keys/validate`, 10, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   const body = await req.json().catch(() => ({})) as { provider?: string };

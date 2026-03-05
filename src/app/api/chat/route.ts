@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:/api/chat`, 30, 60_000);
+  const rl = await rateLimit(`${email}:/api/chat`, 30, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   const instance = await getInstanceByUserId(email);

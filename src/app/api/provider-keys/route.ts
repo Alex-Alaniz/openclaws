@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:GET:/api/provider-keys`, 30, 60_000);
+  const rl = await rateLimit(`${email}:GET:/api/provider-keys`, 30, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   try {
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:POST:/api/provider-keys`, 20, 60_000);
+  const rl = await rateLimit(`${email}:POST:/api/provider-keys`, 20, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   const body = await req.json().catch(() => ({})) as { key?: string };
@@ -101,7 +101,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:DELETE:/api/provider-keys`, 10, 60_000);
+  const rl = await rateLimit(`${email}:DELETE:/api/provider-keys`, 10, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   const { searchParams } = new URL(req.url);

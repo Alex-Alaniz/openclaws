@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   }
 
   // Tighter rate limit for free tier: 10 messages per minute
-  const rl = rateLimit(`${email}:/api/chat-lite`, 10, 60_000);
+  const rl = await rateLimit(`${email}:/api/chat-lite`, 10, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   const body = await req.json().catch(() => ({})) as {

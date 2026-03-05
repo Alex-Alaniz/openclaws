@@ -315,7 +315,23 @@ export default function ToolkitsPage() {
       if (response.status === 401) { window.location.href = '/login'; return; }
       const payload = (await response.json().catch(() => null)) as { redirectUrl?: string; error?: string } | null;
       if (!response.ok) throw new Error(payload?.error ?? 'Failed to start connection.');
-      if (payload?.redirectUrl) { trackToolkitConnectCompleted(toolkitKey); window.location.href = payload.redirectUrl; return; }
+      if (payload?.redirectUrl) {
+        // Validate redirect URL before following it
+        try {
+          const url = new URL(payload.redirectUrl);
+          const isLocalDev = url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname);
+          const isHttps = url.protocol === 'https:';
+          const isSelfDomain = url.hostname === window.location.hostname || url.hostname.endsWith('.openclaws.biz');
+          if ((!isHttps && !isLocalDev) || isSelfDomain) {
+            throw new Error('Invalid redirect URL');
+          }
+        } catch {
+          throw new Error('OAuth redirect could not be verified. Please try again.');
+        }
+        trackToolkitConnectCompleted(toolkitKey);
+        window.location.href = payload.redirectUrl;
+        return;
+      }
       trackToolkitConnectCompleted(toolkitKey);
       await fetchToolkits({ silent: true });
     } catch (err) {

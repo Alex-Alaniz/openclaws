@@ -27,7 +27,7 @@ export async function GET() {
   }
 
   const email = session.user.email?.trim().toLowerCase() ?? 'anon';
-  const rl = rateLimit(`${email}:/api/composio/toolkits`, 30, 60_000);
+  const rl = await rateLimit(`${email}:/api/composio/toolkits`, 30, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   if (!isComposioConfigured()) {

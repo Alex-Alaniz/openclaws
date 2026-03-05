@@ -5,12 +5,11 @@ import { randomBytes } from 'crypto';
 import { authOptions, getUserEmail } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getInstanceByUserId, getSupabase } from '@/lib/supabase';
-import { getSubscriptionStatus } from '@/lib/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request) {
+export async function POST() {
   const session = await getServerSession(authOptions);
   const email = getUserEmail(session ?? {});
 
@@ -18,26 +17,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = await rateLimit(`${email}:GET:/api/gateway/open`, 10, 60_000);
+  const rl = await rateLimit(`${email}:POST:/api/gateway/exchange-token`, 10, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   try {
-    // Verify subscription is still active before granting gateway access
-    try {
-      const sub = await getSubscriptionStatus(email);
-      if (!sub.active) {
-        const baseUrl = new URL(req.url).origin;
-        return NextResponse.redirect(`${baseUrl}/dashboard/settings?expired=true`);
-      }
-    } catch {
-      // If Stripe check fails, still allow access (gateway is already running)
-    }
-
     const instance = await getInstanceByUserId(email);
-
-    if (!instance?.gateway_url || !instance?.gateway_token) {
-      const baseUrl = new URL(req.url).origin;
-      return NextResponse.redirect(`${baseUrl}/dashboard/settings`);
+    if (!instance) {
+      return NextResponse.json({ error: 'Instance not found' }, { status: 404 });
     }
 
     const code = randomBytes(16).toString('hex');
@@ -56,11 +42,9 @@ export async function GET(req: Request) {
       throw new Error(`Failed to create exchange token: ${error.message}`);
     }
 
-    const baseUrl = new URL(req.url).origin;
-    return NextResponse.redirect(`${baseUrl}/gateway/bridge?code=${code}`);
+    return NextResponse.json({ code });
   } catch (error) {
     Sentry.captureException(error);
-    const baseUrl = new URL(req.url).origin;
-    return NextResponse.redirect(`${baseUrl}/dashboard/settings`);
+    return NextResponse.json({ error: 'Failed to create exchange token' }, { status: 500 });
   }
 }

@@ -25,7 +25,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:GET:/api/instance`, 30, 60_000);
+  const rl = await rateLimit(`${email}:GET:/api/instance`, 30, 60_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   try {
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:POST:/api/instance`, 3, 3_600_000);
+  const rl = await rateLimit(`${email}:POST:/api/instance`, 3, 3_600_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   // Verify active subscription before allowing provisioning
@@ -196,7 +196,7 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = rateLimit(`${email}:DELETE:/api/instance`, 5, 3_600_000);
+  const rl = await rateLimit(`${email}:DELETE:/api/instance`, 5, 3_600_000);
   if (!rl.success) return rateLimitResponse(rl);
 
   const instance = await getInstanceByUserId(email);
