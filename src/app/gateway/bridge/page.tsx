@@ -7,11 +7,13 @@ function BridgeContent() {
   const params = useSearchParams();
   const code = params.get('code') ?? undefined;
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'redeeming' | 'approving' | 'redirecting' | 'error'>('redeeming');
 
   useEffect(() => {
     async function redeem() {
       if (!code) {
         setError('Missing exchange code.');
+        setStatus('error');
         return;
       }
 
@@ -20,20 +22,31 @@ function BridgeContent() {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           setError(body.error ?? 'Unable to redeem code.');
+          setStatus('error');
           return;
         }
 
         const data = await res.json() as { gateway_url: string; gateway_token: string };
         if (!data.gateway_url || !data.gateway_token) {
           setError('Invalid gateway response.');
+          setStatus('error');
           return;
         }
 
-        // Ensure trailing slash before hash — OpenClaw Control UI expects /#token= format
+        // Pre-approve device pairing so the user doesn't get stuck
+        setStatus('approving');
+        await fetch('/api/gateway/approve-pairing', { method: 'POST' }).catch(() => {});
+
+        // Small delay to let the approval propagate
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Redirect to gateway Control UI with token
+        setStatus('redirecting');
         const base = data.gateway_url.replace(/\/$/, '');
         window.location.replace(`${base}/#token=${data.gateway_token}`);
       } catch {
         setError('Something went wrong while connecting to your gateway.');
+        setStatus('error');
       }
     }
 
@@ -42,8 +55,15 @@ function BridgeContent() {
 
   return (
     <div className="max-w-md text-center space-y-4">
-      <h1 className="text-2xl font-semibold">Connecting to your gateway…</h1>
-      {!error && <p className="text-sm text-gray-300">Please wait while we establish a secure session.</p>}
+      <h1 className="text-2xl font-semibold">
+        {status === 'redeeming' && 'Authenticating…'}
+        {status === 'approving' && 'Preparing your device…'}
+        {status === 'redirecting' && 'Opening your OpenClaw…'}
+        {status === 'error' && 'Connection failed'}
+      </h1>
+      {status !== 'error' && (
+        <p className="text-sm text-gray-300">Please wait while we establish a secure session.</p>
+      )}
       {error && (
         <div className="space-y-3">
           <p className="text-sm text-red-300">{error}</p>

@@ -51,6 +51,9 @@ export default function SettingsPage() {
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [isDestroying, setIsDestroying] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [approvingDevice, setApprovingDevice] = useState(false);
+  const [deviceApproved, setDeviceApproved] = useState(false);
+  const [deviceApproveError, setDeviceApproveError] = useState<string | null>(null);
   const [gatewayToken, setGatewayToken] = useState<string | null>(null);
 
   // Model state
@@ -478,6 +481,31 @@ export default function SettingsPage() {
                 </a>
                 <p className="break-all text-center text-xs text-zinc-600 select-none">{instance.gateway_url}</p>
                 <p className="text-center text-[10px] text-zinc-600">Always use the button above — it handles authentication automatically</p>
+                <button
+                  onClick={async () => {
+                    setApprovingDevice(true);
+                    try {
+                      const res = await fetch('/api/gateway/approve-pairing', { method: 'POST' });
+                      const data = await res.json().catch(() => ({})) as { approved?: boolean; message?: string; error?: string };
+                      if (data.approved) {
+                        setDeviceApproved(true);
+                        setTimeout(() => setDeviceApproved(false), 3000);
+                      } else {
+                        setDeviceApproveError(data.message ?? data.error ?? 'No pending requests');
+                        setTimeout(() => setDeviceApproveError(null), 3000);
+                      }
+                    } catch {
+                      setDeviceApproveError('Failed to approve');
+                      setTimeout(() => setDeviceApproveError(null), 3000);
+                    } finally {
+                      setApprovingDevice(false);
+                    }
+                  }}
+                  disabled={approvingDevice}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 disabled:opacity-50"
+                >
+                  {approvingDevice ? 'Approving…' : deviceApproved ? 'Device approved — refresh gateway' : deviceApproveError ?? 'Seeing "pairing required"? Click to approve your device'}
+                </button>
               </div>
             ) : null}
 
