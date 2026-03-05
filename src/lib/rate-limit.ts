@@ -12,8 +12,8 @@ export type RateLimitResult = {
   windowMs: number;
 };
 
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 
 // Cache Ratelimit instances per (limit, windowMs) combo
