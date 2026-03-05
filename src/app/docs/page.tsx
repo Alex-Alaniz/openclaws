@@ -88,10 +88,19 @@ export default function DocsPage() {
             <H2 id="overview">What is OpenClaws?</H2>
             <P>
               OpenClaws is a managed hosting platform for <strong className="text-zinc-200">OpenClaw</strong>, the
-              open-source AI assistant with 80,000+ GitHub stars. Each subscriber gets their own dedicated AI
+              open-source AI assistant with 260,000+ GitHub stars. Each subscriber gets their own dedicated AI
               gateway — a 24/7 assistant running on isolated infrastructure with persistent memory, 1000+ tool
               integrations, and 8 messaging channels.
             </P>
+            <div className="my-4 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+              <p className="text-sm text-zinc-300">
+                <strong className="text-blue-300">Built by a Clawtributor</strong> — OpenClaws is created
+                by <ExtLink href="https://github.com/Alex-Alaniz">Alex Alaniz</ExtLink>, an active contributor
+                to the OpenClaw open-source project.
+                See <ExtLink href="https://github.com/openclaw/openclaw/pull/2016">merged contributions</ExtLink> and
+                the <ExtLink href="https://github.com/openclaw/openclaw#community">Clawtributor community</ExtLink>.
+              </p>
+            </div>
             <P>
               Your gateway runs on its own Fly.io VM with dedicated CPU, RAM, and persistent storage. No data
               is shared between users. For deep dives into OpenClaw itself,
