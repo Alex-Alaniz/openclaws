@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { authOptions, getUserEmail } from '@/lib/auth';
 import { getInstanceByUserId, getSupabase } from '@/lib/supabase';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,9 @@ export async function GET(req: Request) {
   if (!session?.user || !email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = await rateLimit(`${email}:GET:/api/gateway/redeem`, 10, 60_000);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');

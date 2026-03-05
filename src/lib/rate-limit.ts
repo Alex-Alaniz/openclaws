@@ -21,6 +21,8 @@ const limiterCache = new Map<string, Ratelimit>();
 
 // In-memory fallback for when Redis is unavailable
 const fallbackStore = new Map<string, number[]>();
+const FALLBACK_MAX_KEYS = 10_000;
+let lastEviction = 0;
 
 function getLimiter(limit: number, windowMs: number): Ratelimit | null {
   if (!redis) return null;
@@ -40,6 +42,14 @@ function getLimiter(limit: number, windowMs: number): Ratelimit | null {
 
 function fallbackRateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now();
+  // Evict stale keys periodically to prevent unbounded growth
+  if (fallbackStore.size > FALLBACK_MAX_KEYS && now - lastEviction > 60_000) {
+    lastEviction = now;
+    for (const [k, ts] of fallbackStore) {
+      if (ts.length === 0 || ts[ts.length - 1] < now - 120_000) fallbackStore.delete(k);
+      if (fallbackStore.size <= FALLBACK_MAX_KEYS / 2) break;
+    }
+  }
   const timestamps = fallbackStore.get(key) ?? [];
   const recent = timestamps.filter((t) => t > now - windowMs);
   if (recent.length >= limit) {

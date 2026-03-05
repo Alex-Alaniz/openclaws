@@ -33,6 +33,16 @@ export async function POST(req: Request) {
         return NextResponse.json({ received: true }, { status: 200 });
       }
 
+      // Verify the subscription matches our expected price
+      const expectedPriceId = process.env.STRIPE_PRICE_ID;
+      if (expectedPriceId && checkoutSession.subscription) {
+        const subscription = await stripe.subscriptions.retrieve(checkoutSession.subscription as string);
+        const priceIds = subscription.items.data.map((item) => item.price.id);
+        if (!priceIds.includes(expectedPriceId)) {
+          return NextResponse.json({ received: true }, { status: 200 });
+        }
+      }
+
       const userEmail =
         checkoutSession.customer_email ??
         checkoutSession.metadata?.userEmail ??
