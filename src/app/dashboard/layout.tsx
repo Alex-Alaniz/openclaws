@@ -78,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <img src="/openclaw.svg" alt="OpenClaws" className="h-5 w-5" />
             <div className="relative hidden sm:block">
               <span className="text-xs font-bold leading-tight text-zinc-100">OpenClaws</span>
-              <span className="absolute bottom-0 right-0 translate-y-[80%] text-[8px] text-zinc-500">by BearifiedCo</span>
+              <a href="https://bearified.co" target="_blank" rel="noopener noreferrer" className="absolute bottom-0 right-0 translate-y-[80%] text-[8px] text-zinc-500 hover:text-zinc-400">by Bearified</a>
             </div>
           </Link>
         </div>

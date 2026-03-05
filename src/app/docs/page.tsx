@@ -539,7 +539,7 @@ export default function DocsPage() {
       <footer className="border-t border-white/[0.08] bg-[#0F0F0F] py-8">
         <div className="mx-auto max-w-3xl px-6">
           <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-zinc-500">
-            <span>&copy; 2026 BearifiedCo. All rights reserved.</span>
+            <span>&copy; 2026 <a href="https://bearified.co" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300">Bearified</a>. All rights reserved.</span>
             <div className="flex gap-4">
               <Link href="/privacy" className="hover:text-zinc-300">Privacy</Link>
               <Link href="/terms" className="hover:text-zinc-300">Terms</Link>

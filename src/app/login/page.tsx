@@ -35,7 +35,7 @@ export default function LoginPage() {
           </div>
           <div className="text-left">
             <p className="text-[22px] font-bold tracking-tight text-white leading-none">OpenClaws</p>
-            <p className="mt-1 text-[11px] font-bold tracking-wide text-zinc-500 uppercase">by BearifiedCo</p>
+            <a href="https://bearified.co" target="_blank" rel="noopener noreferrer" className="mt-1 block text-[11px] font-bold tracking-wide text-zinc-500 uppercase hover:text-zinc-400">by Bearified</a>
           </div>
         </div>
 

@@ -501,7 +501,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <img src="/openclaw.svg" alt="OpenClaws" className="h-5 w-5" />
               <span className="text-sm font-semibold text-gray-900">OpenClaws</span>
-              <span className="text-xs text-gray-400">by BearifiedCo</span>
+              <a href="https://bearified.co" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-gray-600">by Bearified</a>
             </div>
             <nav className="flex flex-wrap items-center gap-6 text-sm text-gray-500">
               <Link href="/docs" className="hover:text-gray-900">Docs</Link>
@@ -511,7 +511,7 @@ export default function Home() {
               <a href="https://x.com/openclaws" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900">X / Twitter</a>
             </nav>
           </div>
-          <p className="mt-8 text-center text-xs text-gray-400">&copy; 2026 BearifiedCo. All rights reserved.</p>
+          <p className="mt-8 text-center text-xs text-gray-400">&copy; 2026 <a href="https://bearified.co" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600">Bearified</a>. All rights reserved.</p>
         </div>
       </footer>
     </div>

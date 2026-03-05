@@ -52,7 +52,7 @@ export default function Image() {
             fontWeight: 500,
           }}
         >
-          by BearifiedCo
+          by Bearified
         </div>
 
         {/* Logo + Title */}
