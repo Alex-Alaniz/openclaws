@@ -7,7 +7,7 @@ function BridgeContent() {
   const params = useSearchParams();
   const code = params.get('code') ?? undefined;
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<'redeeming' | 'approving' | 'redirecting' | 'error'>('redeeming');
+  const [status, setStatus] = useState<'redeeming' | 'redirecting' | 'error'>('redeeming');
 
   useEffect(() => {
     async function redeem() {
@@ -33,14 +33,9 @@ function BridgeContent() {
           return;
         }
 
-        // Pre-approve device pairing so the user doesn't get stuck
-        setStatus('approving');
-        await fetch('/api/gateway/approve-pairing', { method: 'POST' }).catch(() => {});
-
-        // Small delay to let the approval propagate
-        await new Promise(r => setTimeout(r, 1000));
-
         // Redirect to gateway Control UI with token
+        // The gateway has a background auto-approve daemon that will approve
+        // this device within seconds of it connecting via WebSocket
         setStatus('redirecting');
         const base = data.gateway_url.replace(/\/$/, '');
         window.location.replace(`${base}/#token=${data.gateway_token}`);
@@ -57,7 +52,6 @@ function BridgeContent() {
     <div className="max-w-md text-center space-y-4">
       <h1 className="text-2xl font-semibold">
         {status === 'redeeming' && 'Authenticating…'}
-        {status === 'approving' && 'Preparing your device…'}
         {status === 'redirecting' && 'Opening your OpenClaw…'}
         {status === 'error' && 'Connection failed'}
       </h1>

@@ -44,7 +44,7 @@ export async function POST() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cmd: [
+          command: [
             'sh', '-c',
             `OPENCLAW_GATEWAY_PORT=3000 OPENCLAW_GATEWAY_TOKEN=${instance.gateway_token} openclaw devices approve --latest --json`,
           ],

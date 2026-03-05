@@ -402,7 +402,7 @@ export async function provisionGateway(opts: {
             cmd: [
               'sh', '-c',
               // Seed gateway config; rm -f first because new OpenClaw image runs as node (uid 1000) and can't overwrite root-owned files on volume
-              `rm -f /data/openclaw.json 2>/dev/null; printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
+              `rm -f /data/openclaw.json 2>/dev/null; printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; (while true; do sleep 5; OPENCLAW_GATEWAY_PORT=3000 OPENCLAW_GATEWAY_TOKEN=$OPENCLAW_GATEWAY_TOKEN openclaw devices approve --latest 2>/dev/null; done) & exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
             ],
           },
           env: {
