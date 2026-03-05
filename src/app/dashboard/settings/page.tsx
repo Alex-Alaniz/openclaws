@@ -33,9 +33,9 @@ type ProviderKeyInfo = {
 };
 
 const MODELS = [
-  { id: 'claude-sonnet-4-6-20260301', label: 'Claude Sonnet 4.6', provider: 'anthropic' },
-  { id: 'claude-opus-4-6-20260301', label: 'Claude Opus 4.6', provider: 'anthropic' },
-  { id: 'gpt-5.3', label: 'GPT-5.3', provider: 'openai' },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', provider: 'anthropic' },
+  { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', provider: 'anthropic' },
+  { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
 ] as const;
 
 export default function SettingsPage() {
@@ -54,7 +54,7 @@ export default function SettingsPage() {
   const [gatewayToken, setGatewayToken] = useState<string | null>(null);
 
   // Model state
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514');
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
   const [modelLoading, setModelLoading] = useState(false);
 
   // Provider keys state

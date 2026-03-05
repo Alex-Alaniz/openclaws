@@ -23,7 +23,7 @@ export async function GET() {
   try {
     const instance = await getInstanceByUserId(email);
     return NextResponse.json({
-      selectedModel: instance?.selected_model ?? 'claude-sonnet-4-20250514',
+      selectedModel: instance?.selected_model ?? 'claude-sonnet-4-6',
       aiMode: instance?.ai_mode ?? 'managed',
     });
   } catch (error) {
@@ -44,8 +44,8 @@ export async function POST(req: Request) {
   if (!rl.success) return rateLimitResponse(rl);
 
   const ALLOWED_MODELS = [
-    'claude-sonnet-4-20250514',
-    'claude-opus-4-20250514',
+    'claude-sonnet-4-6',
+    'claude-opus-4-6',
     'gpt-4o',
   ];
 

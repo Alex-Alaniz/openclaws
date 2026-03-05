@@ -44,3 +44,17 @@ next-env.d.ts
 # gateway build artifacts
 gateway/dist
 gateway/node_modules
+
+# Screenshots and measurement artifacts
+*.png
+measurements.json
+capture_screenshots.js
+compare_*.js
+measure_*.js
+output/
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Supabase temp
+supabase/.temp/

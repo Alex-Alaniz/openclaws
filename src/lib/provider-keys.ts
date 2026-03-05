@@ -166,7 +166,10 @@ export async function validateProviderKey(
     if (provider === 'openai') {
       return await validateOpenAIKey(keyData.key, userId, provider);
     }
-    return { valid: false, error: `Validation not implemented for ${provider}` };
+    if (provider === 'google') {
+      return await validateGoogleKey(keyData.key, userId, provider);
+    }
+    return { valid: false, error: `Unknown provider: ${provider}` };
   } catch (err) {
     // Validation failure is returned to caller — no logging needed
     return { valid: false, error: 'Validation request failed' };
@@ -236,6 +239,24 @@ async function validateOpenAIKey(
 
   if (res.status === 401) return { valid: false, error: 'Invalid API key' };
   return { valid: false, error: `OpenAI returned ${res.status}` };
+}
+
+async function validateGoogleKey(
+  key: string,
+  userId: string,
+  provider: AiProvider,
+): Promise<{ valid: boolean; error?: string; accountInfo?: Record<string, unknown> }> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
+  );
+
+  if (res.ok) {
+    await markValidated(userId, provider, { type: 'api_key' });
+    return { valid: true, accountInfo: { type: 'api_key' } };
+  }
+
+  if (res.status === 400 || res.status === 403) return { valid: false, error: 'Invalid API key' };
+  return { valid: false, error: `Google returned ${res.status}` };
 }
 
 async function markValidated(userId: string, provider: string, accountInfo: Record<string, unknown>) {
