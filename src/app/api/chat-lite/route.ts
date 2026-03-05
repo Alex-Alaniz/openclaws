@@ -51,6 +51,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'message or messages required' }, { status: 400 });
   }
 
+  // Validate message structure
+  const isValid = messages.length > 0 && messages.every(
+    m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string',
+  );
+  if (!isValid) {
+    return NextResponse.json({ error: 'Invalid message format' }, { status: 400 });
+  }
+
   // Validate message length
   const totalLength = messages.reduce((sum, m) => sum + m.content.length, 0);
   if (totalLength > 100_000) {
@@ -66,7 +74,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to load API keys' }, { status: 500 });
   }
 
-  if (keys.length === 0) {
+  // Only Anthropic and OpenAI are supported for chat-lite
+  const supportedKeys = keys.filter(k => k.provider === 'anthropic' || k.provider === 'openai');
+  if (supportedKeys.length === 0) {
     return NextResponse.json({
       error: 'No API key configured. Add your Anthropic or OpenAI key in Settings to use BYO Key Chat.',
     }, { status: 400 });
@@ -89,8 +99,8 @@ export async function POST(req: Request) {
     }
   } else {
     // Default: use Anthropic if available, else OpenAI
-    const hasAnthropic = keys.some(k => k.provider === 'anthropic');
-    const hasOpenai = keys.some(k => k.provider === 'openai');
+    const hasAnthropic = supportedKeys.some(k => k.provider === 'anthropic');
+    const hasOpenai = supportedKeys.some(k => k.provider === 'openai');
     if (hasAnthropic) {
       provider = 'anthropic';
       model = 'claude-sonnet-4-20250514';
@@ -103,7 +113,7 @@ export async function POST(req: Request) {
   }
 
   // Check if user has a key for the selected provider
-  if (!keys.some(k => k.provider === provider)) {
+  if (!supportedKeys.some(k => k.provider === provider)) {
     return NextResponse.json({
       error: `No ${provider} API key found. Add one in Settings.`,
     }, { status: 400 });
@@ -156,6 +166,7 @@ async function callAnthropic(
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers,
+    signal: AbortSignal.timeout(30_000),
     body: JSON.stringify({
       model,
       max_tokens: 4096,
@@ -164,21 +175,28 @@ async function callAnthropic(
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-    const msg = err.error?.message ?? `Anthropic returned ${res.status}`;
     if (res.status === 401) {
       return NextResponse.json({ error: 'API key expired or invalid. Update your key in Settings.' }, { status: 401 });
+    }
+    if (res.status === 403) {
+      return NextResponse.json({ error: `Your API key does not have access to ${model}. Check your Anthropic account permissions.` }, { status: 403 });
     }
     if (res.status === 429) {
       return NextResponse.json({ error: 'Rate limited by Anthropic. Please wait a moment.' }, { status: 429 });
     }
-    return NextResponse.json({ error: msg }, { status: res.status });
+    if (res.status === 402) {
+      return NextResponse.json({ error: 'Your Anthropic account has insufficient credits.' }, { status: 402 });
+    }
+    return NextResponse.json({ error: 'Anthropic request failed. Please try again.' }, { status: 502 });
   }
 
   const data = await res.json() as {
     content?: Array<{ type: string; text?: string }>;
   };
-  const text = data.content?.find(c => c.type === 'text')?.text ?? '';
+  const text = data.content?.find(c => c.type === 'text')?.text;
+  if (!text) {
+    return NextResponse.json({ message: '', model, provider: 'anthropic' });
+  }
   return NextResponse.json({ message: text, model, provider: 'anthropic' });
 }
 
@@ -193,6 +211,7 @@ async function callOpenAI(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${key}`,
     },
+    signal: AbortSignal.timeout(30_000),
     body: JSON.stringify({
       model,
       max_tokens: 4096,
@@ -201,15 +220,16 @@ async function callOpenAI(
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-    const msg = err.error?.message ?? `OpenAI returned ${res.status}`;
     if (res.status === 401) {
       return NextResponse.json({ error: 'API key invalid. Update your key in Settings.' }, { status: 401 });
+    }
+    if (res.status === 403) {
+      return NextResponse.json({ error: `Your API key does not have access to ${model}. Check your OpenAI account permissions.` }, { status: 403 });
     }
     if (res.status === 429) {
       return NextResponse.json({ error: 'Rate limited by OpenAI. Please wait a moment.' }, { status: 429 });
     }
-    return NextResponse.json({ error: msg }, { status: res.status });
+    return NextResponse.json({ error: 'OpenAI request failed. Please try again.' }, { status: 502 });
   }
 
   const data = await res.json() as {

@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const gatewayReady = instance?.status === 'running' && instance?.gateway_url;
-  const hasByoKey = providerKeys.length > 0;
+  const hasByoKey = providerKeys.some(k => k.provider === 'anthropic' || k.provider === 'openai');
   const chatMode: 'gateway' | 'byo' | 'none' = gatewayReady ? 'gateway' : hasByoKey ? 'byo' : 'none';
   const chatEnabled = chatMode !== 'none';
   const canSend = draft.trim().length > 0 && !isLoading && chatEnabled;
@@ -65,7 +65,10 @@ export default function DashboardPage() {
       .then((data: { active: boolean } | null) => { if (data) setSubActive(data.active); })
       .catch(() => {});
     fetch('/api/provider-keys')
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => {
+        if (r.status === 401) { window.location.href = '/login'; return null; }
+        return r.ok ? r.json() : null;
+      })
       .then((data: { keys: ProviderKeyInfo[] } | null) => { if (data?.keys) setProviderKeys(data.keys); })
       .catch(() => {});
   }, []);
@@ -104,9 +107,13 @@ export default function DashboardPage() {
 
       const data = (await res.json()) as { message?: string; error?: string };
       if (!res.ok) {
+        // BYO mode errors are already user-friendly; gateway errors need friendlyError mapping
+        const errorMessage = chatMode === 'byo'
+          ? (data.error ?? 'Something went wrong. Please try again.')
+          : friendlyError(data.error);
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: friendlyError(data.error) },
+          { role: 'assistant', content: errorMessage },
         ]);
       } else {
         setMessages((prev) => [
@@ -217,7 +224,7 @@ export default function DashboardPage() {
                       Chat directly using your own API key. No subscription required.
                     </p>
                     <p className="text-xs text-zinc-500">
-                      Using {providerKeys[0].provider === 'anthropic' ? 'Anthropic' : providerKeys[0].provider === 'openai' ? 'OpenAI' : providerKeys[0].provider} key ({providerKeys[0].keySuffix})
+                      Using {providerKeys.find(k => k.provider === 'anthropic' || k.provider === 'openai')?.provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} key ({providerKeys.find(k => k.provider === 'anthropic' || k.provider === 'openai')?.keySuffix ?? ''})
                     </p>
                   </div>
                   <div className="text-center">
