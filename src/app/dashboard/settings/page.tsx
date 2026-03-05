@@ -476,7 +476,8 @@ export default function SettingsPage() {
                     <line x1="10" y1="14" x2="21" y2="3" />
                   </svg>
                 </a>
-                <p className="break-all text-center text-xs text-zinc-500">{instance.gateway_url}</p>
+                <p className="break-all text-center text-xs text-zinc-600 select-none">{instance.gateway_url}</p>
+                <p className="text-center text-[10px] text-zinc-600">Always use the button above — it handles authentication automatically</p>
               </div>
             ) : null}
 

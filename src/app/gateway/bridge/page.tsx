@@ -29,7 +29,9 @@ function BridgeContent() {
           return;
         }
 
-        window.location.replace(`${data.gateway_url}#token=${data.gateway_token}`);
+        // Ensure trailing slash before hash — OpenClaw Control UI expects /#token= format
+        const base = data.gateway_url.replace(/\/$/, '');
+        window.location.replace(`${base}/#token=${data.gateway_token}`);
       } catch {
         setError('Something went wrong while connecting to your gateway.');
       }
