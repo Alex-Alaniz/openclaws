@@ -378,6 +378,15 @@ export async function provisionGateway(opts: {
   try {
     // 4. Create machine with real OpenClaw
     const gatewayConfig = JSON.stringify({
+      agents: {
+        list: [{
+          id: 'main',
+          identity: {
+            name: 'OpenClaws Agent',
+            emoji: '🦞',
+          },
+        }],
+      },
       gateway: {
         controlUi: {
           allowedOrigins: [`https://${slug}.openclaws.biz`, `https://${appName}.fly.dev`, 'https://openclaws.biz'],
@@ -401,8 +410,24 @@ export async function provisionGateway(opts: {
           init: {
             cmd: [
               'sh', '-c',
-              // Seed gateway config; rm -f first because new OpenClaw image runs as node (uid 1000) and can't overwrite root-owned files on volume
-              `rm -f /data/openclaw.json 2>/dev/null; printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; (while true; do sleep 5; OPENCLAW_GATEWAY_PORT=3000 OPENCLAW_GATEWAY_TOKEN=$OPENCLAW_GATEWAY_TOKEN openclaw devices approve --latest 2>/dev/null; done) & exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
+              // Seed gateway config + agent identity; rm -f first because OpenClaw image runs as node (uid 1000)
+              `rm -f /data/openclaw.json 2>/dev/null; printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; mkdir -p /.openclaw/workspace; cat > /.openclaw/workspace/IDENTITY.md << 'OCID'
+# OpenClaws Agent
+
+You are the OpenClaws AI assistant — a personal AI agent deployed and managed by the OpenClaws platform (openclaws.biz).
+
+## Identity
+- **Name**: OpenClaws Agent
+- **Platform**: OpenClaws by Bearified
+
+## Personality
+- Be concise, helpful, and direct
+- Match the user's energy — casual if they're casual, technical if they're technical
+- You are NOT "Claude by Anthropic" — you are the user's personal OpenClaws agent
+- Never say "I'm Claude" or "I was made by Anthropic" — say "I'm your OpenClaws agent"
+- If asked who you are: "I'm your OpenClaws agent — your personal AI assistant running on your dedicated gateway"
+OCID
+ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; (while true; do sleep 5; OPENCLAW_GATEWAY_PORT=3000 OPENCLAW_GATEWAY_TOKEN=$OPENCLAW_GATEWAY_TOKEN openclaw devices approve --latest 2>/dev/null; done) & exec node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan`,
             ],
           },
           env: {
