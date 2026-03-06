@@ -19,23 +19,37 @@ export type SubscriptionStatus = {
 export async function getSubscriptionStatus(email: string): Promise<SubscriptionStatus> {
   const stripe = getStripe();
 
-  const customers = await stripe.customers.list({ email, limit: 1 });
+  // Search all customers with this email — duplicates can exist from checkout retries
+  const customers = await stripe.customers.list({ email, limit: 10 });
   if (customers.data.length === 0) {
     return { active: false, status: 'none', customerId: null, currentPeriodEnd: null };
   }
 
-  const customer = customers.data[0];
-  const subs = await stripe.subscriptions.list({
-    customer: customer.id,
-    limit: 1,
-    status: 'all',
-  });
+  // Find the customer that actually has a subscription (prefer active)
+  let bestCustomer = customers.data[0];
+  let bestSub: Stripe.Subscription | null = null;
 
-  if (subs.data.length === 0) {
+  for (const customer of customers.data) {
+    const subs = await stripe.subscriptions.list({
+      customer: customer.id,
+      limit: 1,
+      status: 'all',
+    });
+    if (subs.data.length > 0) {
+      const sub = subs.data[0];
+      if (!bestSub || (sub.status === 'active' && bestSub.status !== 'active')) {
+        bestCustomer = customer;
+        bestSub = sub;
+      }
+    }
+  }
+
+  const customer = bestCustomer;
+  if (!bestSub) {
     return { active: false, status: 'none', customerId: customer.id, currentPeriodEnd: null };
   }
 
-  const sub = subs.data[0];
+  const sub = bestSub;
   const isActive = sub.status === 'active' || sub.status === 'trialing';
   const periodEnd = sub.items.data[0]?.current_period_end;
 
