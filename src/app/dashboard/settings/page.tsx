@@ -68,6 +68,12 @@ export default function SettingsPage() {
   const [validatingProvider, setValidatingProvider] = useState<string | null>(null);
   const [aiMode, setAiMode] = useState('managed');
 
+  // Agent config state
+  const [agentName, setAgentName] = useState('');
+  const [agentPrompt, setAgentPrompt] = useState('');
+  const [agentSaving, setAgentSaving] = useState(false);
+  const [agentSaved, setAgentSaved] = useState(false);
+
   // Subscription state
   const [subActive, setSubActive] = useState<boolean | null>(null);
   const [subStatus, setSubStatus] = useState<string>('none');
@@ -147,12 +153,45 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const fetchAgentConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agent-config');
+      if (!res.ok) return;
+      const data = (await res.json()) as { config: { systemPrompt?: string; name?: string } };
+      if (data.config?.name) setAgentName(data.config.name);
+      if (data.config?.systemPrompt) setAgentPrompt(data.config.systemPrompt);
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
+  const saveAgentConfig = useCallback(async () => {
+    setAgentSaving(true);
+    setAgentSaved(false);
+    try {
+      const res = await fetch('/api/agent-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: agentName, systemPrompt: agentPrompt }),
+      });
+      if (res.ok) {
+        setAgentSaved(true);
+        setTimeout(() => setAgentSaved(false), 3000);
+      }
+    } catch {
+      // Non-fatal
+    } finally {
+      setAgentSaving(false);
+    }
+  }, [agentName, agentPrompt]);
+
   useEffect(() => {
     fetchInstance();
     fetchKeys();
     fetchModel();
     fetchSubscription();
-  }, [fetchInstance, fetchKeys, fetchModel, fetchSubscription]);
+    fetchAgentConfig();
+  }, [fetchInstance, fetchKeys, fetchModel, fetchSubscription, fetchAgentConfig]);
 
   // Fetch token when instance is running
   useEffect(() => {
@@ -364,6 +403,51 @@ export default function SettingsPage() {
           }`}>
             {aiMode === 'byoauth' ? 'BYO OAuth' : aiMode === 'byokey' ? 'BYO Key' : 'Platform Managed'}
           </span>
+        </div>
+      </section>
+
+      {/* Agent Personality */}
+      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+        <h2 className="mb-1 text-lg font-semibold">Agent Personality</h2>
+        <p className="mb-4 text-xs text-zinc-500">
+          Customize how your AI assistant behaves across both the dashboard chat and Control UI.
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="agent-name" className="mb-1 block text-xs text-zinc-400">Agent Name</label>
+            <input
+              id="agent-name"
+              type="text"
+              value={agentName}
+              onChange={(e) => setAgentName(e.target.value)}
+              placeholder="OpenClaws Agent"
+              className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="agent-prompt" className="mb-1 block text-xs text-zinc-400">System Prompt</label>
+            <textarea
+              id="agent-prompt"
+              rows={4}
+              value={agentPrompt}
+              onChange={(e) => setAgentPrompt(e.target.value)}
+              placeholder="You are the user's AI assistant. Be concise, helpful, and direct..."
+              className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
+            />
+            <p className="mt-1 text-[10px] text-zinc-600">{agentPrompt.length}/10,000</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={saveAgentConfig}
+              disabled={agentSaving}
+              className="rounded-lg bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:bg-white/[0.1] disabled:opacity-50"
+            >
+              {agentSaving ? 'Saving...' : 'Save'}
+            </button>
+            {agentSaved ? (
+              <span className="text-xs text-emerald-400">Saved</span>
+            ) : null}
+          </div>
         </div>
       </section>
 

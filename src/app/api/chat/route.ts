@@ -3,10 +3,13 @@ import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { getAgentConfig } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
+const DEFAULT_SYSTEM_PROMPT = `You are the user's AI assistant powered by OpenClaws. You help with coding, automation, research, and general tasks. Be concise, helpful, and direct. Match the user's energy — if they're casual, be casual. If they're technical, be technical.`;
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -29,6 +32,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Chat service temporarily unavailable' }, { status: 503 });
   }
 
+  // Load the agent's soul — system prompt + personality from Supabase
+  const agentConfig = await getAgentConfig(email).catch(() => null);
+  const systemPrompt = agentConfig?.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -41,7 +48,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4096,
-        system: `You are the OpenClaws AI assistant. You help users with their AI gateway, coding tasks, and general questions. Be concise, helpful, and direct. You have access to the user's email: ${email}`,
+        system: systemPrompt,
         messages: [{ role: 'user', content: body.message }],
       }),
     });

@@ -5,6 +5,12 @@ export type InstanceStatus = 'provisioning' | 'running' | 'stopped' | 'error' | 
 
 export type AiMode = 'managed' | 'byokey' | 'byoauth';
 
+export type AgentConfig = {
+  systemPrompt?: string;
+  name?: string;
+  personality?: string;
+};
+
 export type Instance = {
   id: string;
   user_id: string;
@@ -20,6 +26,7 @@ export type Instance = {
   error_message: string | null;
   selected_model: string;
   ai_mode: AiMode;
+  agent_config: AgentConfig;
   created_at: string;
   updated_at: string;
 };
@@ -140,6 +147,26 @@ export async function updateInstanceStatus(
     .eq('user_id', userId);
 
   if (error) throw new Error(`Failed to update instance status: ${error.message}`);
+}
+
+export async function getAgentConfig(userId: string): Promise<AgentConfig | null> {
+  const { data, error } = await getSupabase()
+    .from('instances')
+    .select('agent_config')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) return null;
+  return (data?.agent_config as AgentConfig) ?? null;
+}
+
+export async function updateAgentConfig(userId: string, config: AgentConfig): Promise<void> {
+  const { error } = await getSupabase()
+    .from('instances')
+    .update({ agent_config: config, updated_at: new Date().toISOString() })
+    .eq('user_id', userId);
+
+  if (error) throw new Error(`Failed to update agent config: ${error.message}`);
 }
 
 export async function deleteInstanceByUserId(userId: string): Promise<void> {
