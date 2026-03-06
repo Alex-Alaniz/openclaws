@@ -44,11 +44,9 @@ export async function POST(req: Request) {
     });
 
     if (!gatewayRes.ok) {
-      // 404/405 means the endpoint isn't enabled on this gateway yet
+      // 404/405 means the gateway doesn't expose a REST chat endpoint — fall back to direct Anthropic call
       if (gatewayRes.status === 404 || gatewayRes.status === 405) {
-        return NextResponse.json({
-          message: 'Quick chat is not available yet. Click "Open your OpenClaw" above for the full experience — browser automation, skills, channels, and more.',
-        });
+        return await callAnthropicDirect(body.message);
       }
       await gatewayRes.text().catch(() => {});
       return NextResponse.json({ error: 'Gateway error' }, { status: 502 });
@@ -62,6 +60,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ message });
   } catch (err) {
     Sentry.captureException(err);
-    return NextResponse.json({ error: 'Failed to reach gateway' }, { status: 502 });
+    // Network error reaching gateway — try direct Anthropic call as fallback
+    return await callAnthropicDirect(body.message);
+  }
+}
+
+async function callAnthropicDirect(message: string): Promise<NextResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!apiKey) {
+    return NextResponse.json({ error: 'Chat service temporarily unavailable' }, { status: 503 });
+  }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      signal: AbortSignal.timeout(60_000),
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: message }],
+      }),
+    });
+
+    if (!res.ok) {
+      return NextResponse.json({ error: 'AI request failed. Please try again.' }, { status: 502 });
+    }
+
+    const data = await res.json() as {
+      content?: Array<{ type: string; text?: string }>;
+    };
+    const text = data.content?.find((c: { type: string; text?: string }) => c.type === 'text')?.text ?? '';
+    return NextResponse.json({ message: text });
+  } catch (err) {
+    Sentry.captureException(err);
+    return NextResponse.json({ error: 'AI request failed. Please try again.' }, { status: 502 });
   }
 }
