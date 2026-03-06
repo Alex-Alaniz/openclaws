@@ -380,7 +380,7 @@ export async function provisionGateway(opts: {
     const gatewayConfig = JSON.stringify({
       gateway: {
         controlUi: {
-          allowedOrigins: [`https://${slug}.openclaws.biz`, `https://${appName}.fly.dev`],
+          allowedOrigins: [`https://${slug}.openclaws.biz`, `https://${appName}.fly.dev`, 'https://openclaws.biz'],
           allowInsecureAuth: false,
         },
       },

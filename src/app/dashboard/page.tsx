@@ -154,7 +154,7 @@ export default function DashboardPage() {
           ) : gatewayReady ? (
             <>
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <span>Gateway connected</span>
+              <span>Connected to your agent</span>
             </>
           ) : hasByoKey ? (
             <>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
                   <div>
                     <h2 className="text-lg font-bold text-zinc-100">Welcome back</h2>
                     <p className="mt-1 text-sm text-zinc-500">
-                      Your AI assistant is running. Launch the Control UI for the full experience, or send a quick message below.
+                      Chat with your AI agent below, or launch the Control UI for browser automation, skills, and more.
                     </p>
                   </div>
                 </div>
