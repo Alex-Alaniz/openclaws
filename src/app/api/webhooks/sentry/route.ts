@@ -1,19 +1,35 @@
 /**
  * Receives Sentry issue webhooks, verifies the HMAC signature, and creates a
- * Linear issue for actionable OpenClaws errors.
+ * Linear issue for the appropriate product based on the Sentry project slug.
  */
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
+interface ProductConfig {
+  linearProjectId: string;
+  labelIds: string[];
+}
+
+const SENTRY_LABEL = '98504c1e-842a-4ec0-8dd4-5cde30b7e5ad';
+const BUG_LABEL = '85a64b82-55a5-4a5c-bab6-04da403a582f';
+const READY_FOR_AGENT_LABEL = '67fdc60f-bfef-42e4-b655-61f87d197ccf';
+const DEFAULT_LABELS = [SENTRY_LABEL, BUG_LABEL, READY_FOR_AGENT_LABEL];
+
+const PRODUCT_MAP: Record<string, ProductConfig> = {
+  openclaws:        { linearProjectId: 'a51294d2-be99-48b3-9521-75e4a9a595b0', labelIds: DEFAULT_LABELS },
+  bearcrawl:        { linearProjectId: '11921a59-7c02-4cc8-a306-020d166262ea', labelIds: DEFAULT_LABELS },
+  'react-native':   { linearProjectId: 'e0295a91-88ba-427b-92be-26298ea7efcd', labelIds: DEFAULT_LABELS },
+  cybear:           { linearProjectId: '0c9427f6-5be5-4f20-99cb-2ecc8839233b', labelIds: DEFAULT_LABELS },
+  blazecamp:        { linearProjectId: '56157a34-c849-4380-af66-36fe7914e74d', labelIds: DEFAULT_LABELS },
+  storefront:       { linearProjectId: '6eaf5868-5249-4a82-b7b0-fef78bbe98e9', labelIds: DEFAULT_LABELS },
+};
+
+const FALLBACK_PROJECT_ID = 'a51294d2-be99-48b3-9521-75e4a9a595b0'; // OpenClaws
+
 const CONFIG = {
   linearApiUrl: 'https://api.linear.app/graphql',
   teamId: process.env.LINEAR_TEAM_ID || '199361fb-b484-4f6b-8bea-4ab36b87e487',
-  projectId: process.env.LINEAR_PROJECT_ID || 'a51294d2-be99-48b3-9521-75e4a9a595b0',
-  labelIds: (process.env.LINEAR_LABEL_IDS || '98504c1e-842a-4ec0-8dd4-5cde30b7e5ad,85a64b82-55a5-4a5c-bab6-04da403a582f,67fdc60f-bfef-42e4-b655-61f87d197ccf')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean),
   sentryOrg: process.env.SENTRY_ORG || 'earo',
 } as const;
 
@@ -103,9 +119,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ message: `Ignored action: ${payload.action}` }, { status: 200 });
   }
 
+  const slug = issue.project?.slug || 'openclaws';
+  const product = PRODUCT_MAP[slug] ?? { linearProjectId: FALLBACK_PROJECT_ID, labelIds: DEFAULT_LABELS };
+
   try {
-    const linearIssue = await createLinearIssue(issue, linearApiKey);
-    return NextResponse.json({ success: true, linearIssue }, { status: 200 });
+    const linearIssue = await createLinearIssue(issue, linearApiKey, product, slug);
+    return NextResponse.json({ success: true, linearIssue, product: slug }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create Linear issue';
     return NextResponse.json({ error: message }, { status: 502 });
@@ -115,7 +134,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 /**
  * Creates a Linear issue for a Sentry error using the configured team, project, and labels.
  */
-async function createLinearIssue(issue: SentryIssue, linearApiKey: string): Promise<LinearIssue> {
+async function createLinearIssue(issue: SentryIssue, linearApiKey: string, product: ProductConfig, slug: string): Promise<LinearIssue> {
   const query = `
     mutation CreateIssue($input: IssueCreateInput!) {
       issueCreate(input: $input) {
@@ -141,9 +160,9 @@ async function createLinearIssue(issue: SentryIssue, linearApiKey: string): Prom
       variables: {
         input: {
           teamId: CONFIG.teamId,
-          projectId: CONFIG.projectId,
-          labelIds: CONFIG.labelIds,
-          title: `[Sentry] ${issue.title}`,
+          projectId: product.linearProjectId,
+          labelIds: product.labelIds,
+          title: `[Sentry/${slug}] ${issue.title}`,
           description: formatLinearDescription(issue),
           priority: getLinearPriority(issue.count),
         },
