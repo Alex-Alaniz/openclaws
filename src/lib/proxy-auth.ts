@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
 const PROXY_SECRET = process.env.PROXY_SIGNING_SECRET?.trim();
 const TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
@@ -43,7 +43,6 @@ export function verifyProxyToken(token: string): ProxyTokenClaims | null {
   const expectedBuf = Buffer.from(expected, 'hex');
   if (sigBuf.length !== expectedBuf.length) return null;
 
-  const { timingSafeEqual } = require('crypto');
   if (!timingSafeEqual(sigBuf, expectedBuf)) return null;
 
   return { userId, scope, exp };

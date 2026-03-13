@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Dev scripts and gateway build output:
+    "capture_screenshots.js",
+    "measure_parity.js",
+    "gateway/**",
   ]),
 ]);
 
