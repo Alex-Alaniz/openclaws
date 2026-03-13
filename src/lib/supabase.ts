@@ -32,7 +32,7 @@ export type Instance = {
 };
 
 let supabaseClient: SupabaseClient | null = null;
-let userClientCache: Record<string, SupabaseClient> = {};
+const userClientCache: Record<string, SupabaseClient> = {};
 
 export function getSupabase(): SupabaseClient {
   if (supabaseClient) return supabaseClient;

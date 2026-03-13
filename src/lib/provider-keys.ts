@@ -170,7 +170,7 @@ export async function validateProviderKey(
       return await validateGoogleKey(keyData.key, userId, provider);
     }
     return { valid: false, error: `Unknown provider: ${provider}` };
-  } catch (err) {
+  } catch {
     // Validation failure is returned to caller — no logging needed
     return { valid: false, error: 'Validation request failed' };
   }
