@@ -99,7 +99,11 @@ async function flyFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     const err = new Error(`Fly API ${res.status} on ${options.method ?? 'GET'} ${path}: ${body}`);
-    Sentry.captureException(err, { extra: { responseBody: body, status: res.status } });
+    // 409 on stop/start is a benign state conflict (already stopping/stopped/starting/started)
+    // — don't pollute Sentry; callers handle it gracefully
+    if (!(res.status === 409 && /\/(stop|start)$/.test(path))) {
+      Sentry.captureException(err, { extra: { responseBody: body, status: res.status } });
+    }
     throw err;
   }
 
@@ -199,11 +203,23 @@ export async function deleteMachine(appName: string, machineId: string): Promise
 }
 
 export async function stopMachine(appName: string, machineId: string): Promise<void> {
-  await flyFetch(`/apps/${appName}/machines/${machineId}/stop`, { method: 'POST' });
+  try {
+    await flyFetch(`/apps/${appName}/machines/${machineId}/stop`, { method: 'POST' });
+  } catch (err) {
+    // 409 means machine is already stopping/stopped — not an error
+    if (err instanceof Error && err.message.includes('409')) return;
+    throw err;
+  }
 }
 
 export async function startMachine(appName: string, machineId: string): Promise<void> {
-  await flyFetch(`/apps/${appName}/machines/${machineId}/start`, { method: 'POST' });
+  try {
+    await flyFetch(`/apps/${appName}/machines/${machineId}/start`, { method: 'POST' });
+  } catch (err) {
+    // 409 means machine is already starting/started — not an error
+    if (err instanceof Error && err.message.includes('409')) return;
+    throw err;
+  }
 }
 
 // --- Machine env update ---
