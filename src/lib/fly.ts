@@ -283,7 +283,8 @@ export async function provisionGateway(opts: {
   let slug: string = '';
   let appName: string = '';
   const excludeSlugs = new Set<string>();
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const MAX_CREATE_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
     slug = await generateUniqueSlug(opts.userEmail, excludeSlugs);
     appName = `${prefix}-${slug}`;
     try {
@@ -294,10 +295,30 @@ export async function provisionGateway(opts: {
       });
       break;
     } catch (err) {
-      if (attempt === 2 || !(err instanceof Error && err.message.includes('already'))) {
+      if (!(err instanceof Error && err.message.includes('already'))) {
         throw err;
       }
-      // Collision from race condition or orphaned Fly app — exclude this slug and retry
+      // Name collision — likely an orphaned Fly app from a failed prior provision.
+      // Attempt to clean it up if it's not tracked in our DB (i.e. truly orphaned).
+      const { data: dbRow } = await getSupabase()
+        .from('instances')
+        .select('user_id')
+        .eq('fly_app_name', appName)
+        .maybeSingle();
+      if (!dbRow) {
+        // Orphaned app — not in our DB. Try to delete it on Fly and reuse the slug.
+        try {
+          await flyFetch(`/apps/${appName}`, { method: 'DELETE', signal: provisionSignal });
+          // Deleted successfully — retry the same slug
+          continue;
+        } catch {
+          // Deletion failed (e.g. belongs to different org) — fall through to exclude
+        }
+      }
+      if (attempt === MAX_CREATE_ATTEMPTS - 1) {
+        throw err;
+      }
+      // Exclude this slug and retry with a new one
       excludeSlugs.add(slug);
     }
   }
