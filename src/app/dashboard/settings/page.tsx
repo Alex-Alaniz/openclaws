@@ -394,16 +394,7 @@ export default function SettingsPage() {
             );
           })}
         </div>
-        <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
-          <span>Mode:</span>
-          <span className={`rounded px-2 py-0.5 ${
-            aiMode === 'byoauth' ? 'bg-purple-500/20 text-purple-300'
-            : aiMode === 'byokey' ? 'bg-blue-500/20 text-blue-300'
-            : 'bg-zinc-500/20 text-zinc-400'
-          }`}>
-            {aiMode === 'byoauth' ? 'BYO OAuth' : aiMode === 'byokey' ? 'BYO Key' : 'Platform Managed'}
-          </span>
-        </div>
+
       </section>
 
       {/* Agent Personality */}
@@ -516,19 +507,6 @@ export default function SettingsPage() {
             Anthropic: <code className="text-zinc-500">sk-ant-api...</code> (Console) or <code className="text-zinc-500">sk-ant-oat01-...</code> (OAuth via <code className="text-zinc-500">claude setup-token</code>).
             OpenAI: <code className="text-zinc-500">sk-...</code>
           </p>
-        </div>
-      </section>
-
-      {/* Channel Configuration */}
-      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
-        <h2 className="mb-4 text-lg font-semibold">Channel Configuration</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {['Telegram', 'Discord', 'WhatsApp'].map((channel) => (
-            <div key={channel} className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-400">
-              <span>{channel}</span>
-              <span className="ml-2 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-zinc-500">Coming Soon</span>
-            </div>
-          ))}
         </div>
       </section>
 
