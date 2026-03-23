@@ -447,8 +447,8 @@ export async function provisionGateway(opts: {
           init: {
             cmd: [
               'sh', '-c',
-              // Seed gateway config + agent identity; rm -f first because OpenClaw image runs as node (uid 1000)
-              `rm -f /data/openclaw.json 2>/dev/null; printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; mkdir -p /.openclaw/workspace; cat > /.openclaw/workspace/IDENTITY.md << 'OCID'
+              // Seed gateway config + agent identity only on first run; preserve user changes across restarts
+              `test -f /data/openclaw.json || printf '%s' '${gatewayConfig.replace(/'/g, "'\\''")}' > /data/openclaw.json; mkdir -p /.openclaw/workspace; cat > /.openclaw/workspace/IDENTITY.md << 'OCID'
 # OpenClaws Agent
 
 You are the OpenClaws AI assistant — a personal AI agent deployed and managed by the OpenClaws platform (openclaws.biz).
