@@ -16,7 +16,23 @@ export type SubscriptionStatus = {
   currentPeriodEnd: Date | null;
 };
 
+/**
+ * Check if an email is on the Pro allowlist (PRO_EMAILS env var).
+ * Grants Pro access without requiring a Stripe subscription.
+ */
+export function isProAllowlisted(email: string): boolean {
+  const raw = process.env.PRO_EMAILS?.trim();
+  if (!raw) return false;
+  const allowlist = raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  return allowlist.includes(email.trim().toLowerCase());
+}
+
 export async function getSubscriptionStatus(email: string): Promise<SubscriptionStatus> {
+  // Pro allowlist bypass — grants immediate Pro access without Stripe
+  if (isProAllowlisted(email)) {
+    return { active: true, status: 'active', customerId: null, currentPeriodEnd: null };
+  }
+
   const stripe = getStripe();
 
   // Search all customers with this email — duplicates can exist from checkout retries

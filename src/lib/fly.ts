@@ -568,6 +568,101 @@ async function execOnMachine(
   );
 }
 
+// --- Gateway config management ---
+
+/**
+ * Read the current openclaw.json config from a running gateway machine.
+ */
+export async function readGatewayConfig(
+  appName: string,
+  machineId: string,
+): Promise<Record<string, unknown>> {
+  const result = await execOnMachine(appName, machineId, ['cat', '/data/openclaw.json'], 10);
+  try {
+    return JSON.parse(result.stdout) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Merge a partial config into the gateway's openclaw.json and signal reload.
+ * Uses deep merge for top-level objects so existing config is preserved.
+ */
+export async function patchGatewayConfig(
+  appName: string,
+  machineId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const current = await readGatewayConfig(appName, machineId);
+
+  // Deep merge top-level keys
+  const merged = { ...current };
+  for (const [key, value] of Object.entries(patch)) {
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      current[key] !== null &&
+      typeof current[key] === 'object' &&
+      !Array.isArray(current[key])
+    ) {
+      merged[key] = { ...(current[key] as Record<string, unknown>), ...(value as Record<string, unknown>) };
+    } else {
+      merged[key] = value;
+    }
+  }
+
+  const configJson = JSON.stringify(merged, null, 2);
+  const b64 = Buffer.from(configJson).toString('base64');
+  await execOnMachine(
+    appName,
+    machineId,
+    ['sh', '-c', `echo '${b64}' | base64 -d > /data/openclaw.json && kill -USR1 1 2>/dev/null; true`],
+    15,
+  );
+}
+
+/**
+ * Read configured channels from a running gateway.
+ */
+export async function getGatewayChannels(
+  appName: string,
+  machineId: string,
+): Promise<Record<string, unknown>> {
+  const config = await readGatewayConfig(appName, machineId);
+  return (config.channels as Record<string, unknown>) ?? {};
+}
+
+/**
+ * Set or update a specific channel config on the gateway.
+ */
+export async function setGatewayChannel(
+  appName: string,
+  machineId: string,
+  channel: string,
+  channelConfig: Record<string, unknown>,
+): Promise<void> {
+  const config = await readGatewayConfig(appName, machineId);
+  const channels = (config.channels as Record<string, unknown>) ?? {};
+  channels[channel] = channelConfig;
+  await patchGatewayConfig(appName, machineId, { channels });
+}
+
+/**
+ * Remove a channel config from the gateway.
+ */
+export async function removeGatewayChannel(
+  appName: string,
+  machineId: string,
+  channel: string,
+): Promise<void> {
+  const config = await readGatewayConfig(appName, machineId);
+  const channels = (config.channels as Record<string, unknown>) ?? {};
+  delete channels[channel];
+  await patchGatewayConfig(appName, machineId, { channels });
+}
+
 const COMPOSIO_EXEC_SCRIPT = `#!/usr/bin/env python3
 import sys, os, json, urllib.request
 
