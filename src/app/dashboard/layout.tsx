@@ -66,19 +66,19 @@ const navItems: NavItem[] = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const iconButtonBase =
-    'inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-[8px] text-sm font-medium text-zinc-100 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-[#252525] hover:text-white';
+    'inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-[10px] text-sm font-medium text-[var(--oc-text)] transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-[var(--oc-bg-hover)] hover:text-[var(--oc-text-strong)]';
   const utilityButtonBase =
-    'inline-flex h-9 items-center justify-center gap-1.5 rounded-[8px] px-2.5 text-sm font-medium text-zinc-100 transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-[#252525] hover:text-white';
+    'inline-flex h-9 items-center justify-center gap-1.5 rounded-[10px] px-2.5 text-sm font-medium text-[var(--oc-text)] transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] hover:bg-[var(--oc-bg-hover)] hover:text-[var(--oc-text-strong)]';
   
   return (
-    <div className="flex h-screen flex-col bg-[#0a0a0a] text-white font-sans">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.1] bg-[#111111]/95 px-4 backdrop-blur">
+    <div className="flex h-screen flex-col bg-[var(--oc-bg)] text-[var(--oc-text)] font-sans">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--oc-border)] bg-[var(--oc-bg-accent)]/95 px-4 backdrop-blur">
         <div className="flex items-center gap-1.5">
           <Link href="/dashboard" className="flex items-center gap-1.5">
             <img src="/openclaw.svg" alt="OpenClaws" className="h-5 w-5" />
             <div className="relative hidden sm:block">
-              <span className="text-xs font-bold leading-tight text-zinc-100">OpenClaws</span>
-              <a href="https://bearified.co" target="_blank" rel="noopener noreferrer" className="absolute bottom-0 right-0 translate-y-[80%] text-[8px] text-zinc-500 hover:text-zinc-400">by Bearified</a>
+              <span className="text-xs font-bold leading-tight text-[var(--oc-text-strong)]">OpenClaws</span>
+              <a href="https://bearified.co" target="_blank" rel="noopener noreferrer" className="absolute bottom-0 right-0 translate-y-[80%] text-[8px] text-[var(--oc-muted)] hover:text-[var(--oc-text)]">by Bearified</a>
             </div>
           </Link>
         </div>
@@ -93,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={active ? `${iconButtonBase} bg-[#252525]` : iconButtonBase}
+                  className={active ? `${iconButtonBase} bg-[var(--oc-bg-hover)]` : iconButtonBase}
                   title={item.label}
                 >
                   <Icon className="h-4 w-4 shrink-0" />

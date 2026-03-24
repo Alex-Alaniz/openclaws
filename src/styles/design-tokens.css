@@ -1,0 +1,74 @@
+/* ===========================================
+   OpenClaws Shared Design Tokens
+   ===========================================
+   Canonical color palette shared between the SaaS dashboard (Next.js/Tailwind)
+   and the openclaw Control UI (Lit/Vite). Both dashboards MUST reference these
+   tokens so visual identity stays consistent.
+
+   Control UI source of truth: openclaw/ui/src/styles/base.css
+   =========================================== */
+
+:root {
+  /* ── Background ────────────────────────────── */
+  --oc-bg:          #0e1015;
+  --oc-bg-accent:   #13151b;
+  --oc-bg-elevated: #191c24;
+  --oc-bg-hover:    #1f2330;
+  --oc-bg-muted:    #1f2330;
+
+  /* ── Surface / Card ────────────────────────── */
+  --oc-card:            #161920;
+  --oc-card-foreground: #f0f0f2;
+  --oc-card-highlight:  rgba(255, 255, 255, 0.04);
+
+  /* ── Text ──────────────────────────────────── */
+  --oc-text:        #d4d4d8;
+  --oc-text-strong: #f4f4f5;
+  --oc-muted:       #636370;
+  --oc-muted-strong:#4e4e5a;
+
+  /* ── Border ────────────────────────────────── */
+  --oc-border:       #1e2028;
+  --oc-border-strong:#2e3040;
+  --oc-border-hover: #3e4050;
+
+  /* ── Accent (brand red) ────────────────────── */
+  --oc-accent:            #DC2626;
+  --oc-accent-hover:      #ef4444;
+  --oc-accent-subtle:     rgba(220, 38, 38, 0.10);
+  --oc-accent-foreground: #ffffff;
+  --oc-accent-glow:       rgba(220, 38, 38, 0.15);
+
+  /* ── Semantic ──────────────────────────────── */
+  --oc-ok:          #22c55e;
+  --oc-ok-subtle:   rgba(34, 197, 94, 0.08);
+  --oc-warn:        #f59e0b;
+  --oc-warn-subtle: rgba(245, 158, 11, 0.08);
+  --oc-danger:      #ef4444;
+  --oc-danger-subtle:rgba(239, 68, 68, 0.08);
+
+  /* ── Typography ────────────────────────────── */
+  --oc-font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --oc-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+  /* ── Radii ─────────────────────────────────── */
+  --oc-radius-sm:   6px;
+  --oc-radius-md:   10px;
+  --oc-radius-lg:   14px;
+  --oc-radius-xl:   20px;
+  --oc-radius-full: 9999px;
+
+  /* ── Shadows ───────────────────────────────── */
+  --oc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --oc-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --oc-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+  /* ── Transitions ───────────────────────────── */
+  --oc-ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --oc-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --oc-duration-fast:   100ms;
+  --oc-duration-normal: 180ms;
+
+  /* ── Focus ─────────────────────────────────── */
+  --oc-focus-ring: 0 0 0 2px var(--oc-bg), 0 0 0 3px color-mix(in srgb, var(--oc-accent) 60%, transparent);
+}

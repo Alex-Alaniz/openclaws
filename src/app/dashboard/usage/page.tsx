@@ -77,28 +77,28 @@ export default function UsagePage() {
     : null;
 
   return (
-    <div className="h-full overflow-y-auto bg-[#0a0a0a] text-white">
+    <div className="h-full overflow-y-auto bg-[var(--oc-bg)] text-white">
       <div className="mx-auto w-full max-w-4xl space-y-6 p-4 md:p-6">
-        <h1 className="text-xl font-bold text-zinc-100 md:text-2xl">Usage</h1>
+        <h1 className="text-xl font-bold text-[var(--oc-text-strong)] md:text-2xl">Usage</h1>
 
-        <section className="rounded-xl border border-white/[0.1] bg-[#151515] p-5">
+        <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
           {loading ? (
-            <p className="text-sm text-zinc-500">Loading subscription status...</p>
+            <p className="text-sm text-[var(--oc-muted)]">Loading subscription status...</p>
           ) : sub?.active ? (
             <>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <span className="text-sm font-semibold text-zinc-100">OpenClaws Pro</span>
+                  <span className="text-sm font-semibold text-[var(--oc-text-strong)]">OpenClaws Pro</span>
                 </div>
-                <span className="text-sm text-zinc-400">$29/mo</span>
+                <span className="text-sm text-[var(--oc-muted)]">$29/mo</span>
               </div>
               {periodEnd ? (
-                <p className="mt-2 text-xs text-zinc-500">
+                <p className="mt-2 text-xs text-[var(--oc-muted)]">
                   Current period ends {periodEnd}
                 </p>
               ) : null}
-              <p className="mt-3 text-xs text-zinc-500">
+              <p className="mt-3 text-xs text-[var(--oc-muted)]">
                 Your subscription covers unlimited gateway access. View detailed usage in the Control UI.
               </p>
             </>
@@ -108,22 +108,22 @@ export default function UsagePage() {
                 <div className="h-2 w-2 rounded-full bg-yellow-400" />
                 <span className="text-sm font-semibold text-yellow-300">Payment Past Due</span>
               </div>
-              <p className="mt-2 text-sm text-zinc-400">
+              <p className="mt-2 text-sm text-[var(--oc-muted)]">
                 Please update your payment method to continue using OpenClaws.
               </p>
             </>
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-zinc-500" />
-                <span className="text-sm font-semibold text-zinc-300">No Active Subscription</span>
+                <div className="h-2 w-2 rounded-full bg-[var(--oc-muted)]" />
+                <span className="text-sm font-semibold text-[var(--oc-text)]">No Active Subscription</span>
               </div>
-              <p className="mt-2 text-sm text-zinc-400">
+              <p className="mt-2 text-sm text-[var(--oc-muted)]">
                 Subscribe to OpenClaws Pro to deploy your AI gateway.
               </p>
               <Link
                 href="/dashboard/settings"
-                className="mt-3 inline-block rounded-lg bg-[#DC2626] px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                className="mt-3 inline-block rounded-lg bg-[var(--oc-accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
               >
                 Subscribe — $29/month
               </Link>
@@ -131,19 +131,19 @@ export default function UsagePage() {
           )}
         </section>
 
-        <section className="rounded-xl border border-white/[0.1] bg-[#151515] p-5">
+        <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {instanceLoading ? (
-                <span className="inline-block h-2 w-2 rounded-full bg-zinc-600 animate-pulse" />
+                <span className="inline-block h-2 w-2 rounded-full bg-[var(--oc-muted-strong)] animate-pulse" />
               ) : instance?.status === 'running' ? (
                 <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
               ) : (
-                <span className="inline-block h-2 w-2 rounded-full bg-zinc-500" />
+                <span className="inline-block h-2 w-2 rounded-full bg-[var(--oc-muted)]" />
               )}
-              <span className="text-sm font-semibold text-zinc-100">Gateway</span>
+              <span className="text-sm font-semibold text-[var(--oc-text-strong)]">Gateway</span>
               {instance?.fly_region ? (
-                <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-zinc-400">
+                <span className="rounded-full bg-[var(--oc-bg-hover)] px-2 py-0.5 text-[10px] text-[var(--oc-muted)]">
                   {instance.fly_region}
                 </span>
               ) : null}
@@ -159,28 +159,28 @@ export default function UsagePage() {
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-white/[0.06] bg-[#0f0f0f] p-3">
-              <div className="text-[11px] uppercase tracking-wide text-zinc-500">Status</div>
-              <div className="mt-1 font-mono text-xs text-zinc-100">
+            <div className="rounded-lg border border-[var(--oc-border)] bg-[var(--oc-bg-accent)] p-3">
+              <div className="text-[11px] uppercase tracking-wide text-[var(--oc-muted)]">Status</div>
+              <div className="mt-1 font-mono text-xs text-[var(--oc-text-strong)]">
                 {instanceLoading ? 'Checking…' : instance?.status ?? 'not deployed'}
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/[0.06] bg-[#0f0f0f] p-3">
-              <div className="text-[11px] uppercase tracking-wide text-zinc-500">Uptime</div>
-              <div className="mt-1 font-mono text-xs text-zinc-100">{formatUptime(instance?.created_at)}</div>
+            <div className="rounded-lg border border-[var(--oc-border)] bg-[var(--oc-bg-accent)] p-3">
+              <div className="text-[11px] uppercase tracking-wide text-[var(--oc-muted)]">Uptime</div>
+              <div className="mt-1 font-mono text-xs text-[var(--oc-text-strong)]">{formatUptime(instance?.created_at)}</div>
             </div>
 
-            <div className="rounded-lg border border-white/[0.06] bg-[#0f0f0f] p-3 md:col-span-2">
-              <div className="text-[11px] uppercase tracking-wide text-zinc-500">Gateway URL</div>
-              <div className="mt-1 truncate font-mono text-xs text-zinc-100">
+            <div className="rounded-lg border border-[var(--oc-border)] bg-[var(--oc-bg-accent)] p-3 md:col-span-2">
+              <div className="text-[11px] uppercase tracking-wide text-[var(--oc-muted)]">Gateway URL</div>
+              <div className="mt-1 truncate font-mono text-xs text-[var(--oc-text-strong)]">
                 {instanceLoading ? 'Loading…' : instance?.gateway_url ?? '—'}
               </div>
             </div>
           </div>
 
           {!instanceLoading && !instance ? (
-            <p className="mt-3 text-xs text-zinc-500">
+            <p className="mt-3 text-xs text-[var(--oc-muted)]">
               No gateway deployed yet. Deploy from Settings to start collecting metrics.
             </p>
           ) : null}
