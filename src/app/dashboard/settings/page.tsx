@@ -811,24 +811,6 @@ export default function SettingsPage() {
         </section>
       ) : null}
 
-      {/* Danger Zone */}
-      {instance && (instance.status === 'running' || instance.status === 'error') ? (
-        <section className="rounded-xl border border-red-500/20 bg-[#111111] p-5">
-          <h2 className="mb-2 text-lg font-semibold text-red-400">Danger Zone</h2>
-          <p className="mb-4 text-sm text-zinc-400">Irreversible actions — proceed with caution.</p>
-          <button
-            onClick={handleDestroy}
-            disabled={isDestroying}
-            className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10 disabled:opacity-70"
-          >
-            {isDestroying ? 'Deleting...' : 'Delete OpenClaw Instance'}
-          </button>
-          <p className="mt-2 text-xs text-zinc-500">
-            Permanently deletes your instance, all messages, memories, and cron jobs.
-          </p>
-        </section>
-      ) : null}
-
       <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
         <h2 className="mb-2 text-lg font-semibold">Billing</h2>
         {subActive ? (
