@@ -12,6 +12,15 @@ function getKeys(): { apikey: string; secretapikey: string } {
 
 type PorkbunResponse = { status: string; id?: number };
 
+/**
+ * Porkbun error messages that are expected operational outcomes, not bugs.
+ * These arise from idempotent create/delete operations and race conditions.
+ */
+const EXPECTED_PORKBUN_ERRORS = [
+  'Could not delete record',       // Record doesn't exist (idempotent delete)
+  'unable to create the DNS record', // Duplicate record (idempotent create)
+];
+
 async function porkbunFetch(path: string, body: Record<string, string>): Promise<PorkbunResponse> {
   const res = await fetch(`${PORKBUN_API_BASE}${path}`, {
     method: 'POST',
@@ -23,7 +32,12 @@ async function porkbunFetch(path: string, body: Record<string, string>): Promise
   const data = (await res.json()) as PorkbunResponse;
   if (data.status !== 'SUCCESS') {
     const err = new Error(`Porkbun API error on ${path}: ${JSON.stringify(data)}`);
-    Sentry.captureException(err);
+    // Only report to Sentry if this is NOT a known operational error
+    const message = JSON.stringify(data).toLowerCase();
+    const isExpected = EXPECTED_PORKBUN_ERRORS.some(e => message.includes(e.toLowerCase()));
+    if (!isExpected) {
+      Sentry.captureException(err);
+    }
     throw err;
   }
   return data;
