@@ -82,24 +82,38 @@ async function generateUniqueSlug(email: string, exclude: Set<string> = new Set(
   return `${base}-${randomBytes(2).toString('hex')}`;
 }
 
-async function flyFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+/** Extended options for flyFetch that include Sentry suppression controls. */
+type FlyFetchOptions = RequestInit & {
+  /**
+   * HTTP status codes that are expected operational outcomes (not bugs).
+   * Errors with these status codes are thrown but NOT reported to Sentry.
+   * Example: [409, 412, 422] for provisioning race conditions.
+   */
+  expectedStatuses?: number[];
+};
+
+async function flyFetch<T>(path: string, options: FlyFetchOptions = {}): Promise<T> {
+  const { expectedStatuses, ...fetchOptions } = options;
   const token = getFlyToken();
   // FlyV1 tokens include their own auth scheme; legacy fo1_ tokens use Bearer
   const authHeader = token.startsWith('FlyV1 ') ? token : `Bearer ${token}`;
   const res = await fetch(`${FLY_API_BASE}${path}`, {
-    ...options,
-    signal: options.signal ?? AbortSignal.timeout(30_000),
+    ...fetchOptions,
+    signal: fetchOptions.signal ?? AbortSignal.timeout(30_000),
     headers: {
       Authorization: authHeader,
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...fetchOptions.headers,
     },
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    const err = new Error(`Fly API ${res.status} on ${options.method ?? 'GET'} ${path}: ${body}`);
-    Sentry.captureException(err, { extra: { responseBody: body, status: res.status } });
+    const err = new Error(`Fly API ${res.status} on ${fetchOptions.method ?? 'GET'} ${path}: ${body}`);
+    // Only report to Sentry if this status code is NOT expected
+    if (!expectedStatuses?.includes(res.status)) {
+      Sentry.captureException(err, { extra: { responseBody: body, status: res.status } });
+    }
     throw err;
   }
 
@@ -117,7 +131,11 @@ export async function createApp(name: string, org: string = 'personal'): Promise
 }
 
 export async function deleteApp(name: string): Promise<void> {
-  await flyFetch(`/apps/${name}`, { method: 'DELETE' });
+  await flyFetch(`/apps/${name}`, {
+    method: 'DELETE',
+    // 404 = app already deleted (idempotent cleanup)
+    expectedStatuses: [404],
+  });
 }
 
 // --- Volume operations ---
@@ -195,15 +213,27 @@ export async function getMachine(appName: string, machineId: string): Promise<Fl
 }
 
 export async function deleteMachine(appName: string, machineId: string): Promise<void> {
-  await flyFetch(`/apps/${appName}/machines/${machineId}?force=true`, { method: 'DELETE' });
+  await flyFetch(`/apps/${appName}/machines/${machineId}?force=true`, {
+    method: 'DELETE',
+    // 404 = machine already deleted (idempotent cleanup)
+    expectedStatuses: [404],
+  });
 }
 
 export async function stopMachine(appName: string, machineId: string): Promise<void> {
-  await flyFetch(`/apps/${appName}/machines/${machineId}/stop`, { method: 'POST' });
+  await flyFetch(`/apps/${appName}/machines/${machineId}/stop`, {
+    method: 'POST',
+    // 409 = machine already stopped or in invalid state for stop (race condition)
+    expectedStatuses: [409],
+  });
 }
 
 export async function startMachine(appName: string, machineId: string): Promise<void> {
-  await flyFetch(`/apps/${appName}/machines/${machineId}/start`, { method: 'POST' });
+  await flyFetch(`/apps/${appName}/machines/${machineId}/start`, {
+    method: 'POST',
+    // 409 = machine already running
+    expectedStatuses: [409],
+  });
 }
 
 // --- Machine env update ---
@@ -275,6 +305,8 @@ export async function provisionGateway(opts: {
         method: 'POST',
         signal: provisionSignal,
         body: JSON.stringify({ app_name: appName, org_slug: 'personal' }),
+        // 422 = name taken (expected during retries for race conditions / orphaned apps)
+        expectedStatuses: [422],
       });
       break;
     } catch (err) {
@@ -564,6 +596,8 @@ async function execOnMachine(
       method: 'POST',
       signal: AbortSignal.timeout((timeout + 5) * 1000),
       body: JSON.stringify({ command, timeout }),
+      // 412 = machine not running (expected when instance is stopped/sleeping)
+      expectedStatuses: [412],
     },
   );
 }
