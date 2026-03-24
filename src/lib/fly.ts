@@ -355,8 +355,19 @@ export async function provisionGateway(opts: {
     // Non-fatal — cert may already exist or DNS not ready yet; falls back to .fly.dev
   }
 
-  // 2c. Query cert validation target and create DNS CNAME via Porkbun API
-  let cnameTarget = `${appName}.fly.dev`;
+  // 2c. Create DNS CNAME for routing + ACME challenge CNAME for cert validation
+  // IMPORTANT: The routing CNAME must point to {appName}.fly.dev (NOT the dnsValidationTarget,
+  // which is only for ACME challenge validation and doesn't route traffic).
+  const routingTarget = `${appName}.fly.dev`;
+
+  try {
+    await createSubdomainCname(slug, routingTarget);
+  } catch (err) {
+    Sentry.captureException(err, { extra: { slug, appName, routingTarget } });
+    // Non-fatal — DNS can be created manually; gateway falls back to .fly.dev URL
+  }
+
+  // Create _acme-challenge CNAME for TLS cert validation (separate from routing)
   try {
     const certRes = await fetch(FLY_GQL_URL, {
       method: 'POST',
@@ -370,22 +381,10 @@ export async function provisionGateway(opts: {
     const certData = (await certRes.json()) as { data?: { app?: { certificate?: { dnsValidationTarget?: string } } } };
     const validationTarget = certData?.data?.app?.certificate?.dnsValidationTarget;
     if (validationTarget) {
-      cnameTarget = validationTarget;
-    } else {
-      Sentry.captureMessage('Missing dnsValidationTarget after addCertificate', {
-        level: 'warning',
-        extra: { appName, customDomain, certData },
-      });
+      await createSubdomainCname(`_acme-challenge.${slug}`, validationTarget);
     }
   } catch {
-    // Non-fatal — use default .fly.dev target
-  }
-
-  try {
-    await createSubdomainCname(slug, cnameTarget);
-  } catch (err) {
-    Sentry.captureException(err, { extra: { slug, appName, cnameTarget } });
-    // Non-fatal — DNS can be created manually; gateway falls back to .fly.dev URL
+    // Non-fatal — cert validation may still work via CNAME routing
   }
 
   let volume: FlyVolume;
