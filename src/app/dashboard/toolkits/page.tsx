@@ -397,18 +397,18 @@ export default function ToolkitsPage() {
   }, []);
 
   return (
-    <div className="h-full overflow-y-auto bg-[#0a0a0a] text-white">
+    <div className="h-full overflow-y-auto bg-[var(--oc-bg)] text-white">
       <svg className="hidden" aria-hidden="true">
         <defs><filter id="toolkit-blur"><feGaussianBlur stdDeviation="16" /></filter></defs>
       </svg>
       <div className="mx-auto w-full max-w-5xl space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-zinc-100 md:text-2xl">Toolkits</h1>
-          {isRefreshing && !isLoading ? <span className="text-[11px] text-zinc-500">Refreshing...</span> : null}
+          <h1 className="text-xl font-bold text-[var(--oc-text-strong)] md:text-2xl">Toolkits</h1>
+          {isRefreshing && !isLoading ? <span className="text-[11px] text-[var(--oc-muted)]">Refreshing...</span> : null}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div role="tablist" className="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-[#1f1f1f] p-[3px] text-zinc-400">
+          <div role="tablist" className="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-[var(--oc-bg-hover)] p-[3px] text-[var(--oc-muted)]">
             {(['All', 'Connected'] as const).map((item) => (
               <button
                 key={item}
@@ -418,8 +418,8 @@ export default function ToolkitsPage() {
                 aria-label={`Filter ${item.toLowerCase()} toolkits`}
                 className={`relative inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-sm font-medium transition-all ${
                   tab === item
-                    ? 'border-white/[0.15] bg-white/[0.045] text-zinc-100 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-100'
+                    ? 'border-[var(--oc-border-strong)] bg-[var(--oc-card)] text-[var(--oc-text-strong)] shadow-sm'
+                    : 'text-[var(--oc-muted)] hover:text-[var(--oc-text-strong)]'
                 }`}
               >
                 {item}
@@ -428,7 +428,7 @@ export default function ToolkitsPage() {
           </div>
 
           <div className="relative w-full sm:w-72">
-            <svg className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--oc-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.5-3.5" />
             </svg>
@@ -437,7 +437,7 @@ export default function ToolkitsPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={`Search across ${toolkits.length}+ toolkits...`}
               aria-label="Search toolkits"
-              className="h-9 w-full rounded-md border border-white/[0.15] bg-white/[0.045] pl-9 pr-3 text-sm text-zinc-100 shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-zinc-500 focus:border-white/[0.22] focus:ring-1 focus:ring-white/[0.22]"
+              className="h-9 w-full rounded-md border border-[var(--oc-border-strong)] bg-[var(--oc-card)] pl-9 pr-3 text-sm text-[var(--oc-text-strong)] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none transition-[color,box-shadow] placeholder:text-[var(--oc-muted)] focus:border-[var(--oc-border-strong)] focus:ring-1 focus:ring-[var(--oc-border-strong)]"
             />
           </div>
         </div>
@@ -447,7 +447,7 @@ export default function ToolkitsPage() {
         ) : null}
 
         {isLoading ? (
-          <div className="rounded-md border border-white/10 bg-[#111111] px-4 py-8 text-center text-sm text-zinc-400">Loading toolkits...</div>
+          <div className="rounded-md border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] px-4 py-8 text-center text-sm text-[var(--oc-muted)]">Loading toolkits...</div>
         ) : (
           <>
             <div ref={gridRef} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" onPointerMove={handleGridPointerMove} onPointerLeave={handleGridPointerLeave}>
@@ -515,7 +515,7 @@ export default function ToolkitsPage() {
 
                     {/* Content — background fades on hover to reveal blurred logo colors */}
                     <div className="relative z-[1] h-full rounded-[10px]">
-                      <div className="absolute inset-0 rounded-[10px] bg-[#111111] transition-opacity duration-300" style={{ opacity: 'calc(1 - var(--glow-opacity, 0) * 0.706)' }} />
+                      <div className="absolute inset-0 rounded-[10px] bg-[var(--oc-bg-elevated)] transition-opacity duration-300" style={{ opacity: 'calc(1 - var(--glow-opacity, 0) * 0.706)' }} />
                       <div className="relative z-[1] flex h-full flex-col items-center justify-center gap-2.5 p-5">
                         {toolkit.status === 'connect' ? (
                           <div className="absolute right-3 top-3 z-[1]">
@@ -528,7 +528,7 @@ export default function ToolkitsPage() {
                             </button>
                           </div>
                         ) : (
-                          <div className="absolute right-3 top-3 z-[1] rounded bg-black/40 px-1.5 py-[1px] text-[10px] font-medium text-zinc-100">
+                          <div className="absolute right-3 top-3 z-[1] rounded bg-[var(--oc-card)] px-1.5 py-[1px] text-[10px] font-medium text-[var(--oc-text-strong)]">
                             {toolkit.status === 'active' ? 'Active' : 'Connected'}
                           </div>
                         )}
@@ -561,7 +561,7 @@ export default function ToolkitsPage() {
             </div>
 
             {filtered.length === 0 ? (
-              <div className="rounded-md border border-white/10 bg-[#111111] px-4 py-8 text-center text-sm text-zinc-400">No toolkits match your search.</div>
+              <div className="rounded-md border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] px-4 py-8 text-center text-sm text-[var(--oc-muted)]">No toolkits match your search.</div>
             ) : null}
           </>
         )}

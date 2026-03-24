@@ -410,10 +410,10 @@ export default function SettingsPage() {
       running: 'bg-emerald-400',
       provisioning: 'bg-yellow-400 animate-pulse',
       error: 'bg-red-400',
-      stopped: 'bg-zinc-400',
-      deleting: 'bg-zinc-400 animate-pulse',
+      stopped: 'bg-[var(--oc-muted)]',
+      deleting: 'bg-[var(--oc-muted)] animate-pulse',
     };
-    return colors[status] ?? 'bg-zinc-400';
+    return colors[status] ?? 'bg-[var(--oc-muted)]';
   };
 
   // Detect what the user is pasting
@@ -429,13 +429,13 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-4">
-      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#111111] px-4 py-3">
+      <div className="flex items-center justify-between rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] px-4 py-3">
         <h1 className="text-sm font-semibold tracking-wide text-white">Settings</h1>
-        <p className="text-xs text-zinc-400">Configure model, keys, and billing</p>
+        <p className="text-xs text-[var(--oc-muted)]">Configure model, keys, and billing</p>
       </div>
 
       {/* Model Selection */}
-      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+      <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
         <h2 className="mb-4 text-lg font-semibold">Model Selection</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {MODELS.map((model) => {
@@ -448,15 +448,15 @@ export default function SettingsPage() {
                 disabled={modelLoading || needsKey}
                 className={`rounded-lg border px-4 py-3 text-sm transition-colors ${
                   isSelected
-                    ? 'border-[#DC2626] bg-[#DC2626]/10 text-white'
+                    ? 'border-[var(--oc-accent)] bg-[var(--oc-accent-subtle)] text-white'
                     : needsKey
-                      ? 'cursor-not-allowed border-white/5 bg-black/20 text-zinc-600'
-                      : 'border-white/10 bg-black/30 text-zinc-200 hover:bg-white/10'
+                      ? 'cursor-not-allowed border-[var(--oc-border)] bg-[var(--oc-bg-accent)] text-[var(--oc-muted-strong)]'
+                      : 'border-[var(--oc-border)] bg-[var(--oc-card)] text-[var(--oc-text)] hover:bg-[var(--oc-bg-hover)]'
                 }`}
               >
                 <span>{model.label}</span>
                 {needsKey ? (
-                  <span className="mt-1 block text-xs text-zinc-600">Add API key below</span>
+                  <span className="mt-1 block text-xs text-[var(--oc-muted-strong)]">Add API key below</span>
                 ) : null}
               </button>
             );
@@ -466,40 +466,40 @@ export default function SettingsPage() {
       </section>
 
       {/* Agent Personality */}
-      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+      <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
         <h2 className="mb-1 text-lg font-semibold">Personalize Your Agent</h2>
-        <p className="mb-4 text-xs text-zinc-500">
+        <p className="mb-4 text-xs text-[var(--oc-muted)]">
           Customize how your AI assistant behaves across both the dashboard chat and Control UI.
         </p>
         <div className="space-y-3">
           <div>
-            <label htmlFor="agent-name" className="mb-1 block text-xs text-zinc-400">Agent Name</label>
+            <label htmlFor="agent-name" className="mb-1 block text-xs text-[var(--oc-muted)]">Agent Name</label>
             <input
               id="agent-name"
               type="text"
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
               placeholder="OpenClaws Agent"
-              className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-3 py-2 text-sm text-white placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
             />
           </div>
           <div>
-            <label htmlFor="agent-prompt" className="mb-1 block text-xs text-zinc-400">System Prompt</label>
+            <label htmlFor="agent-prompt" className="mb-1 block text-xs text-[var(--oc-muted)]">System Prompt</label>
             <textarea
               id="agent-prompt"
               rows={4}
               value={agentPrompt}
               onChange={(e) => setAgentPrompt(e.target.value)}
               placeholder="You are the user's AI assistant. Be concise, helpful, and direct..."
-              className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
+              className="w-full resize-none rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-3 py-2 text-sm text-white placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
             />
-            <p className="mt-1 text-[10px] text-zinc-600">{agentPrompt.length}/10,000</p>
+            <p className="mt-1 text-[10px] text-[var(--oc-muted-strong)]">{agentPrompt.length}/10,000</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={saveAgentConfig}
               disabled={agentSaving}
-              className="rounded-lg bg-white/[0.06] px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:bg-white/[0.1] disabled:opacity-50"
+              className="rounded-lg bg-[var(--oc-bg-hover)] px-4 py-2 text-sm font-semibold text-[var(--oc-text-strong)] transition hover:bg-[var(--oc-bg-hover)] disabled:opacity-50"
             >
               {agentSaving ? 'Saving...' : 'Save'}
             </button>
@@ -511,19 +511,19 @@ export default function SettingsPage() {
       </section>
 
       {/* API Keys */}
-      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+      <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
         <h2 className="mb-4 text-lg font-semibold">Connect Your AI Account</h2>
 
         {/* Existing keys */}
         {providerKeys.length > 0 ? (
           <div className="mb-4 space-y-2">
             {providerKeys.map((key) => (
-              <div key={key.provider} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-4 py-3">
+              <div key={key.provider} className="flex items-center justify-between rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className={`h-2 w-2 rounded-full ${key.validated ? 'bg-emerald-400' : 'bg-yellow-400'}`} />
                   <div>
-                    <span className="text-sm font-medium capitalize text-zinc-200">{key.provider}</span>
-                    <span className="ml-2 text-xs text-zinc-500">
+                    <span className="text-sm font-medium capitalize text-[var(--oc-text)]">{key.provider}</span>
+                    <span className="ml-2 text-xs text-[var(--oc-muted)]">
                       {key.keyType === 'oauth_token' ? 'OAuth' : 'API Key'} {key.keySuffix}
                     </span>
                   </div>
@@ -532,7 +532,7 @@ export default function SettingsPage() {
                   <button
                     onClick={() => handleValidateKey(key.provider)}
                     disabled={validatingProvider === key.provider}
-                    className="text-xs text-zinc-400 hover:text-white disabled:opacity-50"
+                    className="text-xs text-[var(--oc-muted)] hover:text-white disabled:opacity-50"
                   >
                     {validatingProvider === key.provider ? 'Testing...' : 'Test'}
                   </button>
@@ -557,40 +557,40 @@ export default function SettingsPage() {
               onChange={(e) => { setKeyInput(e.target.value); setKeyError(null); }}
               placeholder="Paste API key or OAuth token (sk-ant-..., sk-...)"
               aria-label="API key or OAuth token"
-              className="flex-1 rounded-lg border border-white/10 bg-black/30 px-4 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
+              className="flex-1 rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-4 py-2 text-sm text-[var(--oc-text)] placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
             />
             <button
               onClick={handleSaveKey}
               disabled={keySaving || !keyInput.trim()}
-              className="rounded-lg bg-[#DC2626] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+              className="rounded-lg bg-[var(--oc-accent)] px-4 py-2 text-sm font-semibold disabled:opacity-50"
             >
               {keySaving ? 'Saving...' : 'Save'}
             </button>
           </div>
           {detectedKeyType ? (
-            <p className="text-xs text-zinc-400">Detected: <span className="text-zinc-300">{detectedKeyType}</span></p>
+            <p className="text-xs text-[var(--oc-muted)]">Detected: <span className="text-[var(--oc-text)]">{detectedKeyType}</span></p>
           ) : null}
           {keyError ? <p className="text-xs text-red-400">{keyError}</p> : null}
-          <p className="text-xs text-zinc-600">
-            Anthropic: <code className="text-zinc-500">sk-ant-api...</code> (Console) or <code className="text-zinc-500">sk-ant-oat01-...</code> (OAuth).
-            OpenAI: <code className="text-zinc-500">sk-...</code>
+          <p className="text-xs text-[var(--oc-muted-strong)]">
+            Anthropic: <code className="text-[var(--oc-muted)]">sk-ant-api...</code> (Console) or <code className="text-[var(--oc-muted)]">sk-ant-oat01-...</code> (OAuth).
+            OpenAI: <code className="text-[var(--oc-muted)]">sk-...</code>
           </p>
         </div>
       </section>
 
       {/* OpenClaw Gateway Instance Management */}
-      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+      <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
         <h2 className="mb-4 text-lg font-semibold">OpenClaw Gateway</h2>
 
         {instanceLoading ? (
-          <p className="text-sm text-zinc-400">Loading instance status...</p>
+          <p className="text-sm text-[var(--oc-muted)]">Loading instance status...</p>
         ) : instance ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <div className={`h-2 w-2 rounded-full ${statusDot(instance.status)}`} />
-              <span className="text-sm font-medium capitalize text-zinc-200">{instance.status}</span>
+              <span className="text-sm font-medium capitalize text-[var(--oc-text)]">{instance.status}</span>
               {instance.fly_region ? (
-                <span className="text-xs text-zinc-500">({instance.fly_region})</span>
+                <span className="text-xs text-[var(--oc-muted)]">({instance.fly_region})</span>
               ) : null}
             </div>
 
@@ -609,8 +609,8 @@ export default function SettingsPage() {
                     <line x1="10" y1="14" x2="21" y2="3" />
                   </svg>
                 </a>
-                <p className="break-all text-center text-xs text-zinc-600 select-none">{instance.gateway_url}</p>
-                <p className="text-center text-[10px] text-zinc-600">Always use the button above — it handles authentication automatically</p>
+                <p className="break-all text-center text-xs text-[var(--oc-muted-strong)] select-none">{instance.gateway_url}</p>
+                <p className="text-center text-[10px] text-[var(--oc-muted-strong)]">Always use the button above — it handles authentication automatically</p>
                 <button
                   onClick={async () => {
                     setApprovingDevice(true);
@@ -632,7 +632,7 @@ export default function SettingsPage() {
                     }
                   }}
                   disabled={approvingDevice}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 disabled:opacity-50"
+                  className="mt-1 w-full rounded-lg border border-[var(--oc-border)] bg-[var(--oc-bg-accent)] px-4 py-2 text-xs text-[var(--oc-muted)] transition-colors hover:bg-[var(--oc-bg-hover)] hover:text-[var(--oc-text)] disabled:opacity-50"
                 >
                   {approvingDevice ? 'Approving…' : deviceApproved ? 'Device approved — refresh gateway' : deviceApproveError ?? 'Seeing "pairing required"? Click to approve your device'}
                 </button>
@@ -640,10 +640,10 @@ export default function SettingsPage() {
             ) : null}
 
             {gatewayToken && instance.status === 'running' ? (
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
-                <p className="mb-1 text-xs text-zinc-500">Access Token</p>
+              <div className="rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] p-3">
+                <p className="mb-1 text-xs text-[var(--oc-muted)]">Access Token</p>
                 <div className="flex items-center gap-2">
-                  <code className="break-all text-sm text-zinc-200">
+                  <code className="break-all text-sm text-[var(--oc-text)]">
                     {gatewayToken.slice(0, 8)}...{gatewayToken.slice(-4)}
                   </code>
                   <button
@@ -652,12 +652,12 @@ export default function SettingsPage() {
                       setCopiedToken(true);
                       setTimeout(() => setCopiedToken(false), 2000);
                     }}
-                    className="text-xs text-zinc-400 hover:text-white"
+                    className="text-xs text-[var(--oc-muted)] hover:text-white"
                   >
                     {copiedToken ? 'Copied' : 'Copy'}
                   </button>
                 </div>
-                <p className="mt-2 text-xs text-zinc-600">Use this token when first connecting to your OpenClaw Control UI.</p>
+                <p className="mt-2 text-xs text-[var(--oc-muted-strong)]">Use this token when first connecting to your OpenClaw Control UI.</p>
               </div>
             ) : null}
 
@@ -674,7 +674,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handleProvision}
                   disabled={isProvisioning}
-                  className="rounded-lg bg-[#DC2626] px-4 py-2 text-sm font-semibold disabled:opacity-70"
+                  className="rounded-lg bg-[var(--oc-accent)] px-4 py-2 text-sm font-semibold disabled:opacity-70"
                 >
                   {isProvisioning ? 'Retrying...' : 'Retry Provisioning'}
                 </button>
@@ -700,12 +700,12 @@ export default function SettingsPage() {
               <button
                 onClick={handleProvision}
                 disabled={isProvisioning}
-                className="rounded-lg bg-[#DC2626] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+                className="rounded-lg bg-[var(--oc-accent)] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isProvisioning ? 'Provisioning...' : 'Deploy Gateway'}
               </button>
             ) : (
-              <p className="text-sm text-zinc-500">Subscribe to OpenClaws Pro below to deploy your gateway.</p>
+              <p className="text-sm text-[var(--oc-muted)]">Subscribe to OpenClaws Pro below to deploy your gateway.</p>
             )}
           </div>
         )}
@@ -715,25 +715,25 @@ export default function SettingsPage() {
 
       {/* Channel Configuration */}
       {instance && instance.status === 'running' ? (
-        <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+        <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
           <h2 className="mb-1 text-lg font-semibold">Channel Configuration</h2>
-          <p className="mb-4 text-xs text-zinc-500">
+          <p className="mb-4 text-xs text-[var(--oc-muted)]">
             Connect messaging channels so your agent can chat with you on Telegram, Discord, and more.
           </p>
 
           {channelsLoading ? (
-            <p className="text-sm text-zinc-400">Loading channels...</p>
+            <p className="text-sm text-[var(--oc-muted)]">Loading channels...</p>
           ) : (
             <div className="space-y-4">
               {/* Telegram */}
-              <div className="rounded-lg border border-white/10 bg-black/30 p-4">
+              <div className="rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <svg className="h-5 w-5 text-[#26A5E4]" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                     </svg>
                     <div>
-                      <span className="text-sm font-medium text-zinc-200">Telegram</span>
+                      <span className="text-sm font-medium text-[var(--oc-text)]">Telegram</span>
                       {channels.telegram?.configured ? (
                         <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-400">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Connected
@@ -754,9 +754,9 @@ export default function SettingsPage() {
 
                 {!channels.telegram?.configured ? (
                   <div className="mt-3 space-y-2">
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-[var(--oc-muted)]">
                       1. Message <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-[#26A5E4] hover:underline">@BotFather</a> on Telegram
-                      → <code className="text-zinc-400">/newbot</code> → copy the token
+                      → <code className="text-[var(--oc-muted)]">/newbot</code> → copy the token
                     </p>
                     <div className="flex gap-2">
                       <input
@@ -764,7 +764,7 @@ export default function SettingsPage() {
                         value={telegramToken}
                         onChange={(e) => { setTelegramToken(e.target.value); setChannelError(null); }}
                         placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-                        className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/20 focus:outline-none"
+                        className="flex-1 rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-3 py-2 text-sm text-[var(--oc-text)] placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
                       />
                       <button
                         onClick={() => handleSaveChannel('telegram', { token: telegramToken.trim() })}
@@ -779,27 +779,27 @@ export default function SettingsPage() {
               </div>
 
               {/* Discord - placeholder for future */}
-              <div className="rounded-lg border border-white/5 bg-black/20 p-4 opacity-60">
+              <div className="rounded-lg border border-[var(--oc-border)] bg-[var(--oc-bg-accent)] p-4 opacity-60">
                 <div className="flex items-center gap-3">
                   <svg className="h-5 w-5 text-[#5865F2]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
                   </svg>
                   <div>
-                    <span className="text-sm font-medium text-zinc-400">Discord</span>
-                    <span className="ml-2 text-xs text-zinc-600">Coming soon</span>
+                    <span className="text-sm font-medium text-[var(--oc-muted)]">Discord</span>
+                    <span className="ml-2 text-xs text-[var(--oc-muted-strong)]">Coming soon</span>
                   </div>
                 </div>
               </div>
 
               {/* WhatsApp - placeholder for future */}
-              <div className="rounded-lg border border-white/5 bg-black/20 p-4 opacity-60">
+              <div className="rounded-lg border border-[var(--oc-border)] bg-[var(--oc-bg-accent)] p-4 opacity-60">
                 <div className="flex items-center gap-3">
                   <svg className="h-5 w-5 text-[#25D366]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
                   </svg>
                   <div>
-                    <span className="text-sm font-medium text-zinc-400">WhatsApp</span>
-                    <span className="ml-2 text-xs text-zinc-600">Coming soon</span>
+                    <span className="text-sm font-medium text-[var(--oc-muted)]">WhatsApp</span>
+                    <span className="ml-2 text-xs text-[var(--oc-muted-strong)]">Coming soon</span>
                   </div>
                 </div>
               </div>
@@ -811,7 +811,7 @@ export default function SettingsPage() {
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-white/10 bg-[#111111] p-5">
+      <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
         <h2 className="mb-2 text-lg font-semibold">Billing</h2>
         {subActive ? (
           <>
@@ -836,7 +836,7 @@ export default function SettingsPage() {
             <button
               onClick={handleUpgrade}
               disabled={isRedirecting}
-              className="rounded-lg bg-[#DC2626] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+              className="rounded-lg bg-[var(--oc-accent)] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isRedirecting ? 'Redirecting...' : 'Subscribe — $29/month'}
             </button>
