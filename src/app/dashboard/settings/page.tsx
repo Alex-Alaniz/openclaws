@@ -465,9 +465,12 @@ export default function SettingsPage() {
 
       </section>
 
-      {/* API Keys */}
+      {/* Connect Your AI Account */}
       <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
-        <h2 className="mb-4 text-lg font-semibold">Connect Your AI Account</h2>
+        <h2 className="mb-1 text-lg font-semibold">Connect Your AI Account</h2>
+        <p className="mb-4 text-xs text-[var(--oc-muted-strong)]">
+          Link your AI provider account so OpenClaws can use your models.
+        </p>
 
         {/* Existing keys */}
         {providerKeys.length > 0 ? (
@@ -510,8 +513,8 @@ export default function SettingsPage() {
               type="password"
               value={keyInput}
               onChange={(e) => { setKeyInput(e.target.value); setKeyError(null); }}
-              placeholder="Paste API key or OAuth token (sk-ant-..., sk-...)"
-              aria-label="API key or OAuth token"
+              placeholder="Paste your OAuth token or API key"
+              aria-label="OAuth token or API key"
               className="flex-1 rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-4 py-2 text-sm text-[var(--oc-text)] placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
             />
             <button
@@ -527,7 +530,7 @@ export default function SettingsPage() {
           ) : null}
           {keyError ? <p className="text-xs text-red-400">{keyError}</p> : null}
           <p className="text-xs text-[var(--oc-muted-strong)]">
-            Anthropic: <code className="text-[var(--oc-muted)]">sk-ant-api...</code> (Console) or <code className="text-[var(--oc-muted)]">sk-ant-oat01-...</code> (OAuth).
+            Anthropic: paste your OAuth token (<code className="text-[var(--oc-muted)]">sk-ant-oat01-...</code>) from the Anthropic Console.
             OpenAI: <code className="text-[var(--oc-muted)]">sk-...</code>
           </p>
         </div>
