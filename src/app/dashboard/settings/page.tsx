@@ -465,51 +465,6 @@ export default function SettingsPage() {
 
       </section>
 
-      {/* Agent Personality */}
-      <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
-        <h2 className="mb-1 text-lg font-semibold">Personalize Your Agent</h2>
-        <p className="mb-4 text-xs text-[var(--oc-muted)]">
-          Customize how your AI assistant behaves across both the dashboard chat and Control UI.
-        </p>
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="agent-name" className="mb-1 block text-xs text-[var(--oc-muted)]">Agent Name</label>
-            <input
-              id="agent-name"
-              type="text"
-              value={agentName}
-              onChange={(e) => setAgentName(e.target.value)}
-              placeholder="OpenClaws Agent"
-              className="w-full rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-3 py-2 text-sm text-white placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
-            />
-          </div>
-          <div>
-            <label htmlFor="agent-prompt" className="mb-1 block text-xs text-[var(--oc-muted)]">System Prompt</label>
-            <textarea
-              id="agent-prompt"
-              rows={4}
-              value={agentPrompt}
-              onChange={(e) => setAgentPrompt(e.target.value)}
-              placeholder="You are the user's AI assistant. Be concise, helpful, and direct..."
-              className="w-full resize-none rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-3 py-2 text-sm text-white placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
-            />
-            <p className="mt-1 text-[10px] text-[var(--oc-muted-strong)]">{agentPrompt.length}/10,000</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={saveAgentConfig}
-              disabled={agentSaving}
-              className="rounded-lg bg-[var(--oc-bg-hover)] px-4 py-2 text-sm font-semibold text-[var(--oc-text-strong)] transition hover:bg-[var(--oc-bg-hover)] disabled:opacity-50"
-            >
-              {agentSaving ? 'Saving...' : 'Save'}
-            </button>
-            {agentSaved ? (
-              <span className="text-xs text-emerald-400">Saved</span>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
       {/* API Keys */}
       <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
         <h2 className="mb-4 text-lg font-semibold">Connect Your AI Account</h2>
@@ -845,6 +800,51 @@ export default function SettingsPage() {
         {upgraded ? <p className="mt-3 text-sm text-emerald-400">Subscription activated. Welcome to OpenClaws Pro.</p> : null}
         {cancelled ? <p className="mt-3 text-sm text-yellow-400">Checkout cancelled. You can try again anytime.</p> : null}
         {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
+      </section>
+
+      {/* Personalize Your Agent */}
+      <section className="rounded-xl border border-[var(--oc-border)] bg-[var(--oc-bg-elevated)] p-5">
+        <h2 className="mb-1 text-lg font-semibold">Personalize Your Agent</h2>
+        <p className="mb-4 text-xs text-[var(--oc-muted)]">
+          Customize how your AI assistant behaves across both the dashboard chat and Control UI.
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="agent-name" className="mb-1 block text-xs text-[var(--oc-muted)]">Agent Name</label>
+            <input
+              id="agent-name"
+              type="text"
+              value={agentName}
+              onChange={(e) => setAgentName(e.target.value)}
+              placeholder="OpenClaws Agent"
+              className="w-full rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-3 py-2 text-sm text-white placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="agent-prompt" className="mb-1 block text-xs text-[var(--oc-muted)]">System Prompt</label>
+            <textarea
+              id="agent-prompt"
+              rows={4}
+              value={agentPrompt}
+              onChange={(e) => setAgentPrompt(e.target.value)}
+              placeholder="You are the user's AI assistant. Be concise, helpful, and direct..."
+              className="w-full resize-none rounded-lg border border-[var(--oc-border)] bg-[var(--oc-card)] px-3 py-2 text-sm text-white placeholder:text-[var(--oc-muted-strong)] focus:border-[var(--oc-border-strong)] focus:outline-none"
+            />
+            <p className="mt-1 text-[10px] text-[var(--oc-muted-strong)]">{agentPrompt.length}/10,000</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={saveAgentConfig}
+              disabled={agentSaving}
+              className="rounded-lg bg-[var(--oc-bg-hover)] px-4 py-2 text-sm font-semibold text-[var(--oc-text-strong)] transition hover:bg-[var(--oc-bg-hover)] disabled:opacity-50"
+            >
+              {agentSaving ? 'Saving...' : 'Save'}
+            </button>
+            {agentSaved ? (
+              <span className="text-xs text-emerald-400">Saved</span>
+            ) : null}
+          </div>
+        </div>
       </section>
     </div>
   );
