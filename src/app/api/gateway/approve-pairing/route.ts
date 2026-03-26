@@ -56,6 +56,9 @@ export async function POST() {
 
     if (!execRes.ok) {
       const errText = await execRes.text().catch(() => '');
+      if (execRes.status === 412) {
+        return NextResponse.json({ error: 'Gateway is not running' }, { status: 409 });
+      }
       Sentry.captureMessage('Fly exec failed for approve-pairing', {
         level: 'warning',
         extra: { status: execRes.status, body: errText, app: instance.fly_app_name },
