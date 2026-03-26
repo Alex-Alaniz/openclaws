@@ -92,6 +92,13 @@ type FlyFetchOptions = RequestInit & {
   expectedStatuses?: number[];
 };
 
+function isExpectedFlyExecNotRunningError(error: unknown) {
+  return error instanceof Error &&
+    error.message.includes('Fly API 412') &&
+    error.message.includes('/exec') &&
+    error.message.includes('failed_precondition: machine not running');
+}
+
 async function flyFetch<T>(path: string, options: FlyFetchOptions = {}): Promise<T> {
   const { expectedStatuses, ...fetchOptions } = options;
   const token = getFlyToken();
@@ -543,6 +550,10 @@ ln -sfn /data/skills/composio /app/skills/composio 2>/dev/null; (while true; do 
   // 6. Set up Composio toolkit bridge (fire-and-forget, non-blocking)
   if (opts.composioEntityId) {
     setupComposioOnGateway(appName, machine.id).catch((err) => {
+      if (isExpectedFlyExecNotRunningError(err)) {
+        return;
+      }
+
       Sentry.captureException(err, { extra: { appName, step: 'composio-setup' } });
     });
   }
