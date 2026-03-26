@@ -584,22 +584,73 @@ export async function destroyGateway(opts: {
 
 // --- Composio toolkit bridge setup ---
 
-async function execOnMachine(
+export type FlyExecResult = {
+  stdout: string;
+  stderr: string;
+  exit_code: number;
+};
+
+export async function execOnMachine(
   appName: string,
   machineId: string,
   command: string[],
   timeout = 30,
-): Promise<{ stdout: string; stderr: string; exit_code: number }> {
-  return flyFetch<{ stdout: string; stderr: string; exit_code: number }>(
-    `/apps/${appName}/machines/${machineId}/exec`,
-    {
-      method: 'POST',
-      signal: AbortSignal.timeout((timeout + 5) * 1000),
-      body: JSON.stringify({ command, timeout }),
-      // 412 = machine not running (expected when instance is stopped/sleeping)
-      expectedStatuses: [412],
-    },
+): Promise<FlyExecResult> {
+  return flyFetch<FlyExecResult>(`/apps/${appName}/machines/${machineId}/exec`, {
+    method: 'POST',
+    signal: AbortSignal.timeout((timeout + 5) * 1000),
+    body: JSON.stringify({ command, timeout }),
+    // 412 = machine not running (expected when instance is stopped/sleeping)
+    expectedStatuses: [412],
+  });
+}
+
+export type ApprovePairingResult = {
+  approved: boolean;
+  reason: 'approved' | 'no_pending' | 'machine_not_running';
+  machineState?: string;
+  stderr?: string;
+};
+
+export async function approveLatestPairingRequest(
+  appName: string,
+  machineId: string,
+  gatewayToken: string,
+): Promise<ApprovePairingResult> {
+  const machine = await getMachine(appName, machineId);
+  if (machine.state !== 'started') {
+    return {
+      approved: false,
+      reason: 'machine_not_running',
+      machineState: machine.state,
+    };
+  }
+
+  const result = await execOnMachine(
+    appName,
+    machineId,
+    [
+      'sh',
+      '-c',
+      `OPENCLAW_GATEWAY_PORT=3000 OPENCLAW_GATEWAY_TOKEN=${gatewayToken} openclaw devices approve --latest --json`,
+    ],
+    10,
   );
+
+  if (result.exit_code === 0) {
+    return { approved: true, reason: 'approved' };
+  }
+
+  const stderr = result.stderr ?? '';
+  if (stderr.includes('no pending') || stderr.includes('No pending')) {
+    return {
+      approved: false,
+      reason: 'no_pending',
+      stderr,
+    };
+  }
+
+  throw new Error(stderr || result.stdout || 'Failed to approve pairing request');
 }
 
 // --- Gateway config management ---
