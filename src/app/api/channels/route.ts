@@ -4,7 +4,12 @@ import * as Sentry from '@sentry/nextjs';
 import { authOptions, getUserEmail } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getInstanceByUserId } from '@/lib/supabase';
-import { getGatewayChannels, setGatewayChannel, removeGatewayChannel } from '@/lib/fly';
+import {
+  getGatewayChannels,
+  isFlyMachineNotRunningError,
+  removeGatewayChannel,
+  setGatewayChannel,
+} from '@/lib/fly';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,6 +55,9 @@ export async function GET() {
 
     return NextResponse.json({ channels: safe, available: Object.keys(CHANNEL_SCHEMA) });
   } catch (error) {
+    if (isFlyMachineNotRunningError(error)) {
+      return NextResponse.json({ channels: {}, available: Object.keys(CHANNEL_SCHEMA) });
+    }
     Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to fetch channels' }, { status: 500 });
   }
@@ -118,6 +126,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, channel: channelName });
   } catch (error) {
+    if (isFlyMachineNotRunningError(error)) {
+      return NextResponse.json({ error: 'Gateway must be running to configure channels' }, { status: 409 });
+    }
     Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to configure channel' }, { status: 500 });
   }
@@ -157,6 +168,9 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (isFlyMachineNotRunningError(error)) {
+      return NextResponse.json({ error: 'Gateway must be running to configure channels' }, { status: 409 });
+    }
     Sentry.captureException(error);
     return NextResponse.json({ error: 'Failed to remove channel' }, { status: 500 });
   }

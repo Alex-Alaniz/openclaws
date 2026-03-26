@@ -92,6 +92,32 @@ type FlyFetchOptions = RequestInit & {
   expectedStatuses?: number[];
 };
 
+export class FlyApiError extends Error {
+  status: number;
+  method: string;
+  path: string;
+  responseBody: string;
+  expected: boolean;
+
+  constructor(args: { status: number; method: string; path: string; responseBody: string; expected: boolean }) {
+    super(`Fly API ${args.status} on ${args.method} ${args.path}: ${args.responseBody}`);
+    this.name = 'FlyApiError';
+    this.status = args.status;
+    this.method = args.method;
+    this.path = args.path;
+    this.responseBody = args.responseBody;
+    this.expected = args.expected;
+  }
+}
+
+export function isFlyApiError(error: unknown, status?: number): error is FlyApiError {
+  return error instanceof FlyApiError && (status === undefined || error.status === status);
+}
+
+export function isFlyMachineNotRunningError(error: unknown): error is FlyApiError {
+  return isFlyApiError(error, 412) && error.path.includes('/exec');
+}
+
 async function flyFetch<T>(path: string, options: FlyFetchOptions = {}): Promise<T> {
   const { expectedStatuses, ...fetchOptions } = options;
   const token = getFlyToken();
@@ -109,9 +135,15 @@ async function flyFetch<T>(path: string, options: FlyFetchOptions = {}): Promise
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    const err = new Error(`Fly API ${res.status} on ${fetchOptions.method ?? 'GET'} ${path}: ${body}`);
+    const err = new FlyApiError({
+      status: res.status,
+      method: fetchOptions.method ?? 'GET',
+      path,
+      responseBody: body,
+      expected: expectedStatuses?.includes(res.status) ?? false,
+    });
     // Only report to Sentry if this status code is NOT expected
-    if (!expectedStatuses?.includes(res.status)) {
+    if (!err.expected) {
       Sentry.captureException(err, { extra: { responseBody: body, status: res.status } });
     }
     throw err;
