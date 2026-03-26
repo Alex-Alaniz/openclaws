@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { ComposioError } from 'composio-core';
 import { authOptions } from '@/lib/auth';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { getComposioClient, getComposioEntityId, isComposioConfigured } from '@/lib/composio';
@@ -16,6 +17,19 @@ function buildRedirectUri() {
   const base = process.env.NEXTAUTH_URL?.trim();
   if (!base) return undefined;
   return `${base.replace(/\/+$/, '')}/dashboard/toolkits`;
+}
+
+function getComposioErrorStatus(error: unknown) {
+  if (!(error instanceof ComposioError)) return null;
+
+  const statusCode = (error.metadata as { statusCode?: unknown } | undefined)?.statusCode;
+  return typeof statusCode === 'number' ? statusCode : null;
+}
+
+function getComposioErrorMessage(error: unknown) {
+  if (!(error instanceof ComposioError)) return null;
+
+  return error.message?.trim() || error.description?.trim() || null;
 }
 
 export async function POST(request: Request) {
@@ -44,12 +58,15 @@ export async function POST(request: Request) {
     const entityId = getComposioEntityId(session);
     const entity = getComposioClient().getEntity(entityId);
     const redirectUri = buildRedirectUri();
+    const connectionParams = redirectUri
+      ? {
+          appName,
+          redirectUri,
+          config: { redirectUrl: redirectUri },
+        }
+      : { appName };
 
-    const requestResult = await entity.initiateConnection({
-      appName,
-      redirectUri,
-      config: { redirectUrl: redirectUri },
-    });
+    const requestResult = await entity.initiateConnection(connectionParams);
 
     return NextResponse.json({
       appName,
@@ -58,6 +75,14 @@ export async function POST(request: Request) {
       redirectUrl: requestResult.redirectUrl,
     });
   } catch (error) {
+    const statusCode = getComposioErrorStatus(error);
+    if (statusCode && statusCode >= 400 && statusCode < 500) {
+      return NextResponse.json(
+        { error: getComposioErrorMessage(error) ?? 'Unable to start that Composio connection.' },
+        { status: statusCode },
+      );
+    }
+
     Sentry.captureException(error);
     return NextResponse.json(
       { error: 'Failed to initiate Composio connection.' },
