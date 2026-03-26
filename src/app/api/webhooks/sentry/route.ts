@@ -1,6 +1,7 @@
 /**
- * Receives Sentry issue webhooks, verifies the HMAC signature, and creates a
- * Linear issue for the appropriate product based on the Sentry project slug.
+ * Receives Sentry issue webhooks, verifies the HMAC signature, and creates
+ * both a Linear issue and a Paperclip issue for the appropriate product based
+ * on the Sentry project slug.
  */
 import { NextResponse } from 'next/server';
 
@@ -9,6 +10,10 @@ export const runtime = 'nodejs';
 interface ProductConfig {
   linearProjectId: string;
   labelIds: string[];
+  /** Paperclip project ID for bug routing. */
+  paperclipProjectId?: string;
+  /** Paperclip agent ID for auto-assignment (lead engineer). */
+  paperclipAssigneeAgentId?: string;
 }
 
 const SENTRY_LABEL = '98504c1e-842a-4ec0-8dd4-5cde30b7e5ad';
@@ -17,15 +22,46 @@ const READY_FOR_AGENT_LABEL = '67fdc60f-bfef-42e4-b655-61f87d197ccf';
 const DEFAULT_LABELS = [SENTRY_LABEL, BUG_LABEL, READY_FOR_AGENT_LABEL];
 
 const PRODUCT_MAP: Record<string, ProductConfig> = {
-  openclaws:        { linearProjectId: 'a51294d2-be99-48b3-9521-75e4a9a595b0', labelIds: DEFAULT_LABELS },
-  bearcrawl:        { linearProjectId: '11921a59-7c02-4cc8-a306-020d166262ea', labelIds: DEFAULT_LABELS },
-  'react-native':   { linearProjectId: 'e0295a91-88ba-427b-92be-26298ea7efcd', labelIds: DEFAULT_LABELS },
-  cybear:           { linearProjectId: '0c9427f6-5be5-4f20-99cb-2ecc8839233b', labelIds: DEFAULT_LABELS },
-  blazecamp:        { linearProjectId: '56157a34-c849-4380-af66-36fe7914e74d', labelIds: DEFAULT_LABELS },
-  storefront:       { linearProjectId: '6eaf5868-5249-4a82-b7b0-fef78bbe98e9', labelIds: DEFAULT_LABELS },
+  openclaws: {
+    linearProjectId: 'a51294d2-be99-48b3-9521-75e4a9a595b0',
+    labelIds: DEFAULT_LABELS,
+    paperclipProjectId: 'e7e68e8d-49d2-40a8-b2be-4a76d8ad6222',
+    paperclipAssigneeAgentId: 'a06c52d7-ee97-459f-8702-4df412817f26', // OpenClaws Lead
+  },
+  bearcrawl: {
+    linearProjectId: '11921a59-7c02-4cc8-a306-020d166262ea',
+    labelIds: DEFAULT_LABELS,
+    paperclipProjectId: '246131c0-03e7-4dc2-9421-db4d94de1c65',
+    paperclipAssigneeAgentId: 'b898ec02-ed8e-49da-a394-5eacfdf9bcc8', // BearCrawl Lead
+  },
+  'react-native': {
+    linearProjectId: 'e0295a91-88ba-427b-92be-26298ea7efcd',
+    labelIds: DEFAULT_LABELS,
+    paperclipProjectId: '9cfd6f17-ebdc-48ac-b483-c167df222c22', // Bearo
+    paperclipAssigneeAgentId: 'b2e0c071-d7f2-4220-a455-296cc6a821ca', // Bearo Lead
+  },
+  cybear: {
+    linearProjectId: '0c9427f6-5be5-4f20-99cb-2ecc8839233b',
+    labelIds: DEFAULT_LABELS,
+    // No Paperclip project yet for Cybear — will fall back to Internal Products
+    paperclipAssigneeAgentId: 'e1dd6078-bc82-4240-8f79-94f543253fbf', // Cybear Lead
+  },
+  blazecamp: {
+    linearProjectId: '56157a34-c849-4380-af66-36fe7914e74d',
+    labelIds: DEFAULT_LABELS,
+    paperclipProjectId: '0f8e5c5a-9f41-4b1e-9121-f9f71610fb2c',
+    paperclipAssigneeAgentId: 'd2888e1b-4051-436b-abbd-d436f7ad9fd2', // BlazeCamp Lead
+  },
+  storefront: {
+    linearProjectId: '6eaf5868-5249-4a82-b7b0-fef78bbe98e9',
+    labelIds: DEFAULT_LABELS,
+    paperclipProjectId: '33c30d18-c1ae-4a40-b7dd-09f4f474d7fe',
+    paperclipAssigneeAgentId: '1f19afe7-7f4f-46ec-ad8a-87a935134fb1', // Storefront Lead
+  },
 };
 
-const FALLBACK_PROJECT_ID = 'a51294d2-be99-48b3-9521-75e4a9a595b0'; // OpenClaws
+const FALLBACK_PROJECT_ID = 'a51294d2-be99-48b3-9521-75e4a9a595b0'; // OpenClaws (Linear)
+const PAPERCLIP_FALLBACK_PROJECT_ID = 'e7e68e8d-49d2-40a8-b2be-4a76d8ad6222'; // OpenClaws (Paperclip)
 
 const CONFIG = {
   linearApiUrl: 'https://api.linear.app/graphql',
@@ -80,13 +116,18 @@ interface LinearIssue {
   url: string;
 }
 
+interface PaperclipIssue {
+  id: string;
+  identifier: string;
+}
+
 interface LinearResponse<T> {
   data?: T;
   errors?: Array<{ message: string }>;
 }
 
 /**
- * Handles Sentry issue webhooks and creates a linked Linear bug for new issues.
+ * Handles Sentry issue webhooks and creates linked bugs in both Linear and Paperclip.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const linearApiKey = process.env.LINEAR_API_KEY?.trim();
@@ -122,13 +163,45 @@ export async function POST(request: Request): Promise<NextResponse> {
   const slug = issue.project?.slug || 'openclaws';
   const product = PRODUCT_MAP[slug] ?? { linearProjectId: FALLBACK_PROJECT_ID, labelIds: DEFAULT_LABELS };
 
+  const results: {
+    linearIssue?: LinearIssue;
+    linearError?: string;
+    paperclipIssue?: PaperclipIssue;
+    paperclipError?: string;
+    product: string;
+  } = { product: slug };
+
+  // Create Linear issue
   try {
-    const linearIssue = await createLinearIssue(issue, linearApiKey, product, slug);
-    return NextResponse.json({ success: true, linearIssue, product: slug }, { status: 200 });
+    results.linearIssue = await createLinearIssue(issue, linearApiKey, product, slug);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create Linear issue';
-    return NextResponse.json({ error: message }, { status: 502 });
+    results.linearError = error instanceof Error ? error.message : 'Failed to create Linear issue';
   }
+
+  // Create Paperclip issue (best-effort — don't fail the webhook if Paperclip is unavailable)
+  const paperclipApiUrl = process.env.PAPERCLIP_API_URL?.trim();
+  const paperclipApiKey = process.env.PAPERCLIP_API_KEY?.trim();
+  const paperclipCompanyId = process.env.PAPERCLIP_COMPANY_ID?.trim();
+
+  if (paperclipApiUrl && paperclipApiKey && paperclipCompanyId) {
+    try {
+      results.paperclipIssue = await createPaperclipIssue(
+        issue, paperclipApiUrl, paperclipApiKey, paperclipCompanyId, product, slug,
+        results.linearIssue,
+      );
+    } catch (error) {
+      results.paperclipError = error instanceof Error ? error.message : 'Failed to create Paperclip issue';
+      console.error('[sentry-webhook] Paperclip issue creation failed:', results.paperclipError);
+    }
+  }
+
+  // Return success if at least one integration succeeded
+  const anySuccess = results.linearIssue || results.paperclipIssue;
+  if (!anySuccess) {
+    return NextResponse.json({ error: results.linearError || results.paperclipError }, { status: 502 });
+  }
+
+  return NextResponse.json({ success: true, ...results }, { status: 200 });
 }
 
 /**
@@ -188,6 +261,76 @@ async function createLinearIssue(issue: SentryIssue, linearApiKey: string, produ
   }
 
   return createdIssue;
+}
+
+/**
+ * Creates a Paperclip issue for a Sentry error, routed to the correct project and lead engineer.
+ */
+async function createPaperclipIssue(
+  issue: SentryIssue,
+  apiUrl: string,
+  apiKey: string,
+  companyId: string,
+  product: ProductConfig,
+  slug: string,
+  linkedLinearIssue?: LinearIssue,
+): Promise<PaperclipIssue> {
+  const projectId = product.paperclipProjectId || PAPERCLIP_FALLBACK_PROJECT_ID;
+  const sentryLink = `https://${CONFIG.sentryOrg}.sentry.io/issues/${issue.shortId}/`;
+  const priority = issue.count >= 10 ? 'critical' : issue.count >= 5 ? 'high' : 'medium';
+
+  const descriptionParts = [
+    `## Sentry Error — auto-synced`,
+    '',
+    `**Sentry Issue:** [${issue.shortId}](${sentryLink})`,
+    `**Error Type:** ${issue.metadata?.type || issue.level || 'unknown'}`,
+    `**Culprit:** \`${issue.culprit || 'Unknown'}\``,
+    `**Platform:** ${issue.platform || 'Unknown'}`,
+    `**Project:** ${issue.project?.name || slug}`,
+    `**First Seen:** ${issue.firstSeen}`,
+    `**Event Count:** ${issue.count}`,
+  ];
+
+  if (issue.metadata?.value) {
+    descriptionParts.push('', `**Error Message:**`, '```', issue.metadata.value, '```');
+  }
+  if (issue.metadata?.filename) descriptionParts.push(`**File:** \`${issue.metadata.filename}\``);
+  if (issue.metadata?.function) descriptionParts.push(`**Function:** \`${issue.metadata.function}\``);
+  if (linkedLinearIssue) {
+    descriptionParts.push('', `**Linear Issue:** [${linkedLinearIssue.identifier}](${linkedLinearIssue.url})`);
+  }
+  descriptionParts.push('', '---', '*Auto-created from Sentry webhook*');
+
+  const body: Record<string, unknown> = {
+    title: `[Sentry/${slug}] ${issue.title}`,
+    description: descriptionParts.join('\n'),
+    projectId,
+    status: 'todo',
+    priority,
+  };
+
+  if (product.paperclipAssigneeAgentId) {
+    body.assigneeAgentId = product.paperclipAssigneeAgentId;
+  }
+
+  const baseUrl = apiUrl.replace(/\/+$/, '');
+  const response = await fetch(`${baseUrl}/api/companies/${companyId}/issues`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Paperclip API ${response.status}: ${errorBody || response.statusText}`);
+  }
+
+  const created = await response.json() as { id: string; identifier: string };
+  return { id: created.id, identifier: created.identifier };
 }
 
 /**
