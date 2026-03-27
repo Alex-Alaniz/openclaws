@@ -58,3 +58,10 @@ output/
 
 # Supabase temp
 supabase/.temp/
+
+# Heartbeat hardening artifacts
+/var/heartbeat/logs/
+/var/heartbeat/metrics/
+/var/heartbeat/reports/
+/var/heartbeat/state/
+!/var/heartbeat/.gitkeep
